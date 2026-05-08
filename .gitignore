@@ -1,0 +1,75 @@
+# SpreadJS Collaboration Project
+
+## Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+## Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+## Database
+*.db
+*.sqlite
+*.sqlite3
+
+## Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+error.log*
+access.log*
+
+## IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+## Prisma
+prisma/migrations/
+
+## Build
+*.tsbuildinfo
+*.js.map
+*.d.ts.map
+
+## Coverage
+coverage/
+.nyc_output/
+
+## Testing
+.cache/
+*.test.js.snap
+
+## Temporary
+tmp/
+temp/
+*.tmp
+*.temp
+
+## Secrets
+*.pem
+*.key
+credentials.json
+secrets.json
+
+## Docker
+.dockerignore
+Dockerfile
+docker-compose.override.yml

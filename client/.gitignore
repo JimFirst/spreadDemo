@@ -1,0 +1,33 @@
+# SpreadJS Client
+
+## Node
+node_modules/
+dist/
+build/
+
+## Environment
+.env
+.env.local
+.env.*.local
+VITE_*
+
+## Build
+*.tsbuildinfo
+*.js.map
+*.d.ts.map
+
+## Logs
+*.log
+npm-debug.log*
+
+## IDE
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+## Testing
+coverage/
+*.test.js
+*.spec.js
