@@ -4,10 +4,14 @@ import * as OT from '@grapecity-software/js-collaboration-ot-client'
 import { type, bind } from '@grapecity-software/spread-sheets-collaboration-client'
 import '@grapecity-software/spread-sheets-collaboration-addon'
 import GC from '@grapecity-software/spread-sheets'
+import { documentService } from '../services/api/document.service'
+
+const { BrowsingMode } = GC.Spread.Sheets.Collaboration
 
 interface User {
   userId: string
   username: string
+  role?: 'editor' | 'viewer'
 }
 
 interface UseSpreadCollaborationOptions {
@@ -23,6 +27,7 @@ interface UseSpreadCollaborationReturn {
   error: Error | null
   errorCode?: number
   users: User[]
+  userRole: 'editor' | 'viewer'
   bindWorkbook: (workbook: GC.Spread.Sheets.Workbook) => void
   disconnect: () => void
 }
@@ -38,6 +43,7 @@ export const useSpreadCollaboration = ({
   const [error, setError] = useState<Error | null>(null)
   const [errorCode, setErrorCode] = useState<number | undefined>(undefined)
   const [users, setUsers] = useState<User[]>([])
+  const [userRole, setUserRole] = useState<'editor' | 'viewer'>('editor')
 
   const clientRef = useRef<Client | null>(null)
   const docRef = useRef<OT.SharedDoc | null>(null)
@@ -53,9 +59,9 @@ export const useSpreadCollaboration = ({
 
     const initCollaboration = async () => {
       try {
-        console.log('=== 开始初始化协同 ===')
-        console.log('文档 ID:', documentId)
-        console.log('用户 ID:', userId)
+        const roleResponse = await documentService.getMyRole(documentId)
+        const role = roleResponse.data?.role || 'viewer'
+        setUserRole(role === 'viewer' ? 'viewer' : 'editor')
 
         OT.TypesManager.register(type)
 
@@ -73,27 +79,22 @@ export const useSpreadCollaboration = ({
 
         const doc = new OT.SharedDoc(connection)
         docRef.current = doc
-        console.log('SharedDoc 实例已创建', doc)
 
         doc.on('error', (err: Error & { code?: number }) => {
           setError(err)
           setErrorCode(err.code)
           onError?.(err)
-          console.error('协同错误:', err)
         })
 
-        console.log('协同客户端初始化完成，等待 bindWorkbook...')
         setIsConnected(true)
         setIsLoading(false)
         isInitializedRef.current = true
-        console.log('=== 协同初始化完成 ===')
       } catch (err) {
         const errorWithCode = err as Error & { code?: number }
         setError(errorWithCode)
         setErrorCode(errorWithCode.code)
         onError?.(errorWithCode)
         setIsLoading(false)
-        console.error('协同初始化失败:', err)
       }
     }
 
@@ -112,38 +113,35 @@ export const useSpreadCollaboration = ({
     }
   }, [documentId])
 
-  const bindWorkbook = useCallback(async (workbook: GC.Spread.Sheets.Workbook) => {
-    workbookRef.current = workbook
-    if (docRef.current) {
-      console.log('正在获取文档...')
-      await docRef.current.fetch()
-      console.log('文档获取完成')
-      console.log('doc.type:', docRef.current.type)
-      console.log('doc.version:', docRef.current.version)
-      console.log('doc.data:', docRef.current.data)
+  const bindWorkbook = useCallback(
+    async (workbook: GC.Spread.Sheets.Workbook) => {
+      workbookRef.current = workbook
+      if (docRef.current) {
+        await docRef.current.fetch()
 
-      if (!docRef.current.type) {
-        if (workbook.collaboration) {
-          console.log('创建新文档...')
-          const snapshot = workbook.collaboration.toSnapshot()
-          console.log('快照数据长度:', snapshot ? '有效' : '无效')
-          await docRef.current.create(snapshot, type.uri, {})
-          console.log('文档创建成功')
-        } else {
-          console.warn('Workbook collaboration 未初始化，等待...')
-          pendingBindRef.current = true
+        if (!docRef.current.type) {
+          if (workbook.collaboration) {
+            const snapshot = workbook.collaboration.toSnapshot()
+            await docRef.current.create(snapshot, type.uri, {})
+          } else {
+            pendingBindRef.current = true
+          }
         }
-      } else {
-        console.log('文档已存在，直接绑定...')
-      }
 
-      console.log('绑定 workbook')
-      bind(workbook, docRef.current)
-      console.log('✅ bind() 执行完成，文档已同步到 workbook')
-    } else {
-      console.error('❌ docRef.current 为 null，无法绑定')
-    }
-  }, [])
+        const user = {
+          userId: userId,
+          name: '',
+          permission: {
+            mode: userRole === 'viewer' ? BrowsingMode.view : BrowsingMode.edit,
+          },
+        }
+        workbook.collaboration.setUser(user)
+
+        await bind(workbook, docRef.current)
+      }
+    },
+    [userId, userRole]
+  )
 
   const disconnect = useCallback(() => {
     if (clientRef.current) {
@@ -163,6 +161,7 @@ export const useSpreadCollaboration = ({
     error,
     errorCode,
     users,
+    userRole,
     bindWorkbook,
     disconnect,
   }

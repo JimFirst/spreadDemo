@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../types/index'
 import { extractUserFromToken } from '../config/jwt'
 import { logger } from '../logger/index'
 import { userService } from '../services/user.service'
+import { prisma } from '../config/database'
 
 const MOCK_USERS = [
   {
@@ -89,12 +90,9 @@ export const mockAuthMiddleware = async (
     const mockUser = MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)]
     let user
     if (userId) {
-      try {
-        user = await userService.findById(userId)
-      } catch (error) {
-        user = await userService.findOrCreate(mockUser.id, mockUser.username, mockUser.email)
-      }
-    } else {
+      user = await userService.findById(userId)
+    }
+    if (!user) {
       user = await userService.findOrCreate(mockUser.id, mockUser.username, mockUser.email)
     }
 
@@ -127,26 +125,52 @@ export const mockAuthMiddleware = async (
 }
 
 export const mockCollaborationAuth = async (
-  context: { connection: { tags: Map<string, unknown>; query?: Record<string, string> } },
+  context: {
+    connection: {
+      auth?: { token?: string }
+      query?: Record<string, string>
+      tags: Map<string, unknown>
+    }
+    documentId?: string
+  },
   next: () => void
 ): Promise<void> => {
   const userId = context.connection.auth?.token
+  const documentId = context.documentId || context.connection.query?.id
 
   const mockUser = MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)]
   let user
   if (userId) {
-    try {
-      user = await userService.findById(userId)
-    } catch (error) {
-      user = await userService.findOrCreate(mockUser.id, mockUser.username, mockUser.email)
-    }
-  } else {
+    user = await userService.findById(userId)
+  }
+  if (!user) {
     user = await userService.findOrCreate(mockUser.id, mockUser.username, mockUser.email)
   }
+
+  let role = 'editor'
+  if (documentId && user) {
+    const member = await prisma.documentMember.findUnique({
+      where: {
+        documentId_userId: {
+          documentId,
+          userId: user.id,
+        },
+      },
+    })
+    if (member) {
+      role = member.role
+    }
+  }
+
+  if (!user) {
+    user = await userService.findOrCreate(mockUser.id, mockUser.username, mockUser.email)
+  }
+
   context.connection.tags.set('user', {
     id: user.id,
     username: user.username,
     email: user.email || undefined,
+    role: role,
   })
   next()
 }

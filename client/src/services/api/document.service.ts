@@ -72,6 +72,10 @@ export const documentService = {
     return axiosInstance.get(`/documents/${id}/members`)
   },
 
+  getMyRole(id: string) {
+    return axiosInstance.get(`/documents/${id}/my-role`)
+  },
+
   removeMember(documentId: string, userId: string) {
     return axiosInstance.delete(`/documents/${documentId}/members/${userId}`)
   },

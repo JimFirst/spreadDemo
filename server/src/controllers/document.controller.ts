@@ -118,6 +118,28 @@ export class DocumentController {
     })
   }
 
+  async getMyRole(req: AuthenticatedRequest, res: Response) {
+    const { id } = req.params
+    const userId = req.user!.id
+
+    const member = await prisma.documentMember.findUnique({
+      where: {
+        documentId_userId: {
+          documentId: id,
+          userId: userId,
+        },
+      },
+    })
+
+    res.json({
+      code: 0,
+      data: {
+        role: member?.role || 'viewer',
+      },
+      message: '获取用户角色成功',
+    })
+  }
+
   async createShareLink(req: AuthenticatedRequest, res: Response) {
     const { id } = req.params
     const { permission = 'read', expiresAt } = req.body

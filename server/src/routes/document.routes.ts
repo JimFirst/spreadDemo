@@ -55,6 +55,12 @@ router.get('/:id/members', documentAccessMiddleware, (req, res, next) =>
     .then(() => next())
     .catch(next)
 )
+router.get('/:id/my-role', documentAccessMiddleware, (req, res, next) =>
+  documentController
+    .getMyRole(req, res, next)
+    .then(() => next())
+    .catch(next)
+)
 router.delete(
   '/:id/members/:userId',
   documentAccessMiddleware,
