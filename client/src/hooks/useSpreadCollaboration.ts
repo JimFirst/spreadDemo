@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Client } from '@grapecity-software/js-collaboration-client'
 import * as OT from '@grapecity-software/js-collaboration-ot-client'
-import { type, bind } from '@grapecity-software/spread-sheets-collaboration-client'
+import { type, bind, bindPresence } from '@grapecity-software/spread-sheets-collaboration-client'
+import { Presence } from '@grapecity-software/js-collaboration-presence-client'
 import '@grapecity-software/spread-sheets-collaboration-addon'
 import GC from '@grapecity-software/spread-sheets'
 import { documentService } from '../services/api/document.service'
 
-const { BrowsingMode } = GC.Spread.Sheets.Collaboration
+const COLOR_SCHEME = ['#0000ff', '#008000', '#9900cc', '#800000', '#00cc33', '#cc6600', '#cc0099']
 
 interface User {
   userId: string
@@ -19,6 +20,7 @@ interface UseSpreadCollaborationOptions {
   serverUrl: string
   onError?: (error: Error & { code?: number }) => void
   userId: string
+  username: string
 }
 
 interface UseSpreadCollaborationReturn {
@@ -37,6 +39,7 @@ export const useSpreadCollaboration = ({
   serverUrl,
   onError,
   userId,
+  username,
 }: UseSpreadCollaborationOptions): UseSpreadCollaborationReturn => {
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -48,6 +51,7 @@ export const useSpreadCollaboration = ({
   const clientRef = useRef<Client | null>(null)
   const docRef = useRef<OT.SharedDoc | null>(null)
   const workbookRef = useRef<GC.Spread.Sheets.Workbook | null>(null)
+  const presenceRef = useRef<Presence<any> | null>(null)
   const isInitializedRef = useRef(false)
   const pendingBindRef = useRef(false)
 
@@ -80,6 +84,9 @@ export const useSpreadCollaboration = ({
         const doc = new OT.SharedDoc(connection)
         docRef.current = doc
 
+        const presence = new Presence(connection)
+        presenceRef.current = presence
+
         doc.on('error', (err: Error & { code?: number }) => {
           setError(err)
           setErrorCode(err.code)
@@ -108,6 +115,9 @@ export const useSpreadCollaboration = ({
       if (docRef.current) {
         docRef.current = null
       }
+      if (presenceRef.current) {
+        presenceRef.current = null
+      }
       isInitializedRef.current = false
       pendingBindRef.current = false
     }
@@ -128,19 +138,28 @@ export const useSpreadCollaboration = ({
           }
         }
 
-        const user = {
-          userId: userId,
-          name: '',
-          permission: {
-            mode: userRole === 'viewer' ? BrowsingMode.view : BrowsingMode.edit,
-          },
-        }
-        workbook.collaboration.setUser(user)
-
         await bind(workbook, docRef.current)
+
+        if (presenceRef.current) {
+          const permissionMode =
+            userRole === 'viewer'
+              ? GC.Spread.Sheets.Collaboration.BrowsingMode.view
+              : GC.Spread.Sheets.Collaboration.BrowsingMode.edit
+
+          const user: any = {
+            id: userId,
+            name: username,
+            permission: {
+              mode: permissionMode,
+            },
+          }
+          await bindPresence(workbook, presenceRef.current, user, {
+            colorScheme: COLOR_SCHEME,
+          })
+        }
       }
     },
-    [userId, userRole]
+    [userId, username, userRole]
   )
 
   const disconnect = useCallback(() => {

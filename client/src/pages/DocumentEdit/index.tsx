@@ -129,7 +129,11 @@ const DocumentEditContent: React.FC = () => {
           }
           style={{ flex: 1 }}
         >
-          <SpreadsheetEditor documentId={id!} userId={currentUserId} />
+          <SpreadsheetEditor
+            documentId={id!}
+            userId={currentUserId}
+            username={user?.username || ''}
+          />
         </Card>
 
         <Modal

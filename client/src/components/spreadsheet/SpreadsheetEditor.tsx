@@ -26,6 +26,7 @@ interface SpreadsheetEditorProps {
   onAccessDenied?: () => void
   readOnly?: boolean
   userId: string
+  username: string
 }
 
 export const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
@@ -35,6 +36,7 @@ export const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   onAccessDenied,
   readOnly = false,
   userId,
+  username,
 }) => {
   const spreadRef = useRef<GC.Spread.Sheets.Workbook | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -57,6 +59,7 @@ export const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     serverUrl,
     onError: handleCollaborativeError,
     userId,
+    username,
   })
 
   const loadSnapshot = useCallback((snapshot: SnapshotData, spread?: GC.Spread.Sheets.Workbook) => {

@@ -4,6 +4,7 @@ import { Server as CollaborationServer } from '@grapecity-software/js-collaborat
 import * as OT from '@grapecity-software/js-collaboration-ot'
 import { type } from '@grapecity-software/spread-sheets-collaboration'
 import { PostgresDb } from '@grapecity-software/js-collaboration-ot-postgres'
+import { presenceFeature } from '@grapecity-software/js-collaboration-presence'
 import { PrismaClient } from '@prisma/client'
 import { Pool } from 'pg'
 import { extractUserFromToken } from '../config/jwt'
@@ -41,6 +42,7 @@ export class CollaborationManager {
     this.dbAdapter = new PostgresDb(pool)
     this.documentServices = new OT.DocumentServices({ db: this.dbAdapter })
     this.server.useFeature(OT.documentFeature(this.documentServices))
+    this.server.useFeature(presenceFeature())
     this.server.use('connect', async (context: any, next: any) => {
       // const token = context.connection.auth?.token
       // if (!token) {
