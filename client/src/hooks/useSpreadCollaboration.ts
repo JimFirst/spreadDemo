@@ -13,8 +13,8 @@ interface User {
 interface UseSpreadCollaborationOptions {
   documentId: string
   serverUrl: string
-  autoConnect?: boolean
   onError?: (error: Error & { code?: number }) => void
+  userId: string
 }
 
 interface UseSpreadCollaborationReturn {
@@ -30,8 +30,8 @@ interface UseSpreadCollaborationReturn {
 export const useSpreadCollaboration = ({
   documentId,
   serverUrl,
-  autoConnect = true,
   onError,
+  userId,
 }: UseSpreadCollaborationOptions): UseSpreadCollaborationReturn => {
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -43,23 +43,37 @@ export const useSpreadCollaboration = ({
   const docRef = useRef<OT.SharedDoc | null>(null)
   const workbookRef = useRef<GC.Spread.Sheets.Workbook | null>(null)
   const isInitializedRef = useRef(false)
+  const pendingBindRef = useRef(false)
 
   useEffect(() => {
-    if (!autoConnect || !documentId || !serverUrl) {
+    if (!documentId || !serverUrl) {
       setIsLoading(false)
       return
     }
 
     const initCollaboration = async () => {
       try {
+        console.log('=== 开始初始化协同 ===')
+        console.log('文档 ID:', documentId)
+        console.log('用户 ID:', userId)
+
         OT.TypesManager.register(type)
 
         const client = new Client(serverUrl)
-        const connection = client.connect(documentId)
+
+        const connection = client.connect(documentId, {
+          query: {
+            id: documentId,
+          },
+          auth: {
+            token: userId,
+          },
+        })
         clientRef.current = client
 
         const doc = new OT.SharedDoc(connection)
         docRef.current = doc
+        console.log('SharedDoc 实例已创建', doc)
 
         doc.on('error', (err: Error & { code?: number }) => {
           setError(err)
@@ -68,24 +82,11 @@ export const useSpreadCollaboration = ({
           console.error('协同错误:', err)
         })
 
-        await doc.fetch()
-
-        if (!doc.type && workbookRef.current) {
-          if (workbookRef.current.collaboration) {
-            await doc.create(workbookRef.current.collaboration.toSnapshot(), type.uri, {})
-            if (workbookRef.current) {
-              bind(workbookRef.current, doc)
-            }
-          } else {
-            console.warn('Workbook collaboration 未初始化，跳过创建')
-          }
-        } else if (doc.type && workbookRef.current) {
-          bind(workbookRef.current, doc)
-        }
-
+        console.log('协同客户端初始化完成，等待 bindWorkbook...')
         setIsConnected(true)
         setIsLoading(false)
         isInitializedRef.current = true
+        console.log('=== 协同初始化完成 ===')
       } catch (err) {
         const errorWithCode = err as Error & { code?: number }
         setError(errorWithCode)
@@ -107,31 +108,40 @@ export const useSpreadCollaboration = ({
         docRef.current = null
       }
       isInitializedRef.current = false
+      pendingBindRef.current = false
     }
-  }, [documentId, serverUrl, autoConnect])
+  }, [documentId])
 
-  const bindWorkbook = useCallback((workbook: GC.Spread.Sheets.Workbook) => {
+  const bindWorkbook = useCallback(async (workbook: GC.Spread.Sheets.Workbook) => {
     workbookRef.current = workbook
-
     if (docRef.current) {
+      console.log('正在获取文档...')
+      await docRef.current.fetch()
+      console.log('文档获取完成')
+      console.log('doc.type:', docRef.current.type)
+      console.log('doc.version:', docRef.current.version)
+      console.log('doc.data:', docRef.current.data)
+
       if (!docRef.current.type) {
-        docRef.current.once('sync', async () => {
-          if (!docRef.current!.type && workbookRef.current) {
-            if (workbookRef.current.collaboration) {
-              await docRef.current!.create(
-                workbookRef.current.collaboration.toSnapshot(),
-                type.uri,
-                {}
-              )
-              bind(workbookRef.current, docRef.current!)
-            } else {
-              console.warn('Workbook collaboration 未初始化，跳过创建')
-            }
-          }
-        })
+        if (workbook.collaboration) {
+          console.log('创建新文档...')
+          const snapshot = workbook.collaboration.toSnapshot()
+          console.log('快照数据长度:', snapshot ? '有效' : '无效')
+          await docRef.current.create(snapshot, type.uri, {})
+          console.log('文档创建成功')
+        } else {
+          console.warn('Workbook collaboration 未初始化，等待...')
+          pendingBindRef.current = true
+        }
       } else {
-        bind(workbook, docRef.current)
+        console.log('文档已存在，直接绑定...')
       }
+
+      console.log('绑定 workbook')
+      bind(workbook, docRef.current)
+      console.log('✅ bind() 执行完成，文档已同步到 workbook')
+    } else {
+      console.error('❌ docRef.current 为 null，无法绑定')
     }
   }, [])
 

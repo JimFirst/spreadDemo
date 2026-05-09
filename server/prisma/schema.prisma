@@ -3,79 +3,74 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id          String   @id @default(uuid())
-  externalId  String   @unique
-  username    String
-  email       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  documents   Document[]
-  changesets  ChangeSet[]
-  members     DocumentMember[]
+  id         String           @id @default(uuid())
+  externalId String           @unique
+  username   String
+  email      String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  changesets ChangeSet[]
+  documents  Document[]
+  members    DocumentMember[]
 
   @@index([externalId])
 }
 
 model Document {
-  id          String   @id @default(uuid())
-  title       String
-  creatorId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  creator     User     @relation(fields: [creatorId], references: [id])
-  snapshots   Snapshot[]
-  changesets  ChangeSet[]
-  members     DocumentMember[]
-  shareLinks  DocumentShareLink[]
+  id         String              @id @default(uuid())
+  title      String
+  creatorId  String
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  changesets ChangeSet[]
+  creator    User                @relation(fields: [creatorId], references: [id])
+  members    DocumentMember[]
+  shareLinks DocumentShareLink[]
+  snapshots  Snapshot[]
 
   @@index([creatorId])
 }
 
 model Snapshot {
-  id          String   @id @default(uuid())
-  documentId  String
-  data        Json
-  version     Int      @default(1)
-  createdAt   DateTime @default(now())
-
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  changesets  ChangeSet[]
+  id         String      @id @default(uuid())
+  documentId String
+  data       Json
+  version    Int         @default(1)
+  createdAt  DateTime    @default(now())
+  changesets ChangeSet[]
+  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
 }
 
 model ChangeSet {
-  id          String   @id @default(uuid())
-  documentId  String
-  snapshotId  String
-  userId      String
-  ops         Json
-  createdAt   DateTime @default(now())
-
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  snapshot    Snapshot @relation(fields: [snapshotId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  id         String   @id @default(uuid())
+  documentId String
+  snapshotId String
+  userId     String
+  ops        Json
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  snapshot   Snapshot @relation(fields: [snapshotId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
   @@index([documentId])
   @@index([userId])
 }
 
 model DocumentMember {
-  id          String   @id @default(uuid())
-  documentId  String
-  userId      String
-  role        String   @default("editor")
-  createdAt   DateTime @default(now())
-
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id])
+  id         String   @id @default(uuid())
+  documentId String
+  userId     String
+  role       String   @default("editor")
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
 
   @@unique([documentId, userId])
   @@index([documentId])
@@ -83,15 +78,14 @@ model DocumentMember {
 }
 
 model DocumentShareLink {
-  id          String    @id @default(uuid())
-  documentId  String
-  token       String    @unique
-  permission  String    @default("read")
-  createdBy   String
-  createdAt   DateTime  @default(now())
-  expiresAt   DateTime?
-
-  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  documentId String
+  token      String    @unique
+  permission String    @default("read")
+  createdBy  String
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([documentId])

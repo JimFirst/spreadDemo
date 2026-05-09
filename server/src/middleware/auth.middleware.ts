@@ -126,15 +126,27 @@ export const mockAuthMiddleware = async (
   }
 }
 
-export const mockCollaborationAuth = (
-  context: { connection: { tags: Map<string, unknown> } },
+export const mockCollaborationAuth = async (
+  context: { connection: { tags: Map<string, unknown>; query?: Record<string, string> } },
   next: () => void
-): void => {
+): Promise<void> => {
+  const userId = context.connection.auth?.token
+
   const mockUser = MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)]
+  let user
+  if (userId) {
+    try {
+      user = await userService.findById(userId)
+    } catch (error) {
+      user = await userService.findOrCreate(mockUser.id, mockUser.username, mockUser.email)
+    }
+  } else {
+    user = await userService.findOrCreate(mockUser.id, mockUser.username, mockUser.email)
+  }
   context.connection.tags.set('user', {
-    id: mockUser.id,
-    username: mockUser.username,
-    email: mockUser.email,
+    id: user.id,
+    username: user.username,
+    email: user.email || undefined,
   })
   next()
 }

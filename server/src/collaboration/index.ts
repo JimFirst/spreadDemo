@@ -3,8 +3,9 @@ import { Server } from 'http'
 import { Server as CollaborationServer } from '@grapecity-software/js-collaboration'
 import * as OT from '@grapecity-software/js-collaboration-ot'
 import { type } from '@grapecity-software/spread-sheets-collaboration'
-import { MySQLAdapter } from './mysql-adapter'
+import { PostgresDb } from '@grapecity-software/js-collaboration-ot-postgres'
 import { PrismaClient } from '@prisma/client'
+import { Pool } from 'pg'
 import { extractUserFromToken } from '../config/jwt'
 import { logger } from '../logger/index'
 import { createCorsMiddleware, jsonMiddleware, mockCollaborationAuth } from '../middleware'
@@ -16,25 +17,30 @@ export class CollaborationManager {
   private app: Express
   private httpServer: Server
   private prisma: PrismaClient
-  private dbAdapter: MySQLAdapter
-  private documentServices!: OT.DocumentServices
+  private dbAdapter!: PostgresDb
+  private documentServices: OT.DocumentServices<unknown, unknown>
 
   constructor(httpServer: Server) {
     this.app = express()
     this.httpServer = httpServer
     this.prisma = new PrismaClient()
-    this.dbAdapter = new MySQLAdapter(this.prisma)
-    this.documentServices = new OT.DocumentServices(this.dbAdapter)
   }
 
   async initialize(corsOrigin: string): Promise<void> {
     this.app.use(createCorsMiddleware({ origin: corsOrigin }))
     this.app.use(jsonMiddleware)
-
     this.server = new CollaborationServer({
       httpServer: this.httpServer,
+      path: '/collaboration/',
     })
 
+    const dbUrl = process.env.DATABASE_URL
+    const pool = new Pool({
+      connectionString: dbUrl,
+    })
+    this.dbAdapter = new PostgresDb(pool)
+    this.documentServices = new OT.DocumentServices({ db: this.dbAdapter })
+    this.server.useFeature(OT.documentFeature(this.documentServices))
     this.server.use('connect', async (context: any, next: any) => {
       // const token = context.connection.auth?.token
       // if (!token) {
@@ -48,10 +54,8 @@ export class CollaborationManager {
       //   await next('令牌无效')
       // }
 
-      mockCollaborationAuth(context, next)
+      await mockCollaborationAuth(context, next)
     })
-
-    this.server.useFeature(OT.documentFeature(this.documentServices))
 
     this.app.get('/health', (req: Request, res: Response) => {
       res.json({ status: 'ok', timestamp: new Date().toISOString() })
@@ -77,6 +81,7 @@ export class CollaborationManager {
 
   async shutdown(): Promise<void> {
     await this.prisma.$disconnect()
+    await this.dbAdapter.close()
     this.httpServer.close()
   }
 }
@@ -85,6 +90,5 @@ export const createCollaborationManager = async (
   httpServer: Server
 ): Promise<CollaborationManager> => {
   const manager = new CollaborationManager(httpServer)
-  await manager.initialize(process.env.CORS_ORIGIN || 'http://localhost:5173')
   return manager
 }

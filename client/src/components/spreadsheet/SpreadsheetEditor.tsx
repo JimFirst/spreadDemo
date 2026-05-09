@@ -25,6 +25,7 @@ interface SpreadsheetEditorProps {
   onDataChange?: (data: unknown) => void
   onAccessDenied?: () => void
   readOnly?: boolean
+  userId: string
 }
 
 export const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
@@ -33,6 +34,7 @@ export const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   onDataChange,
   onAccessDenied,
   readOnly = false,
+  userId,
 }) => {
   const spreadRef = useRef<GC.Spread.Sheets.Workbook | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -54,6 +56,7 @@ export const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     documentId,
     serverUrl,
     onError: handleCollaborativeError,
+    userId,
   })
 
   const loadSnapshot = useCallback((snapshot: SnapshotData, spread?: GC.Spread.Sheets.Workbook) => {
@@ -112,10 +115,10 @@ export const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   )
 
   useEffect(() => {
-    if (isInitialized && initialData) {
+    if (isInitialized && initialData && !isConnected) {
       loadSnapshot(initialData)
     }
-  }, [initialData, isInitialized, loadSnapshot])
+  }, [initialData, isInitialized, loadSnapshot, isConnected])
 
   const loadingStyles: React.CSSProperties = {
     position: 'absolute',
