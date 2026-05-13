@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button, Space, Card, Input, message } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import { SpreadsheetEditor } from '../../components/spreadsheet/SpreadsheetEditor'
+import {
+  SpreadsheetEditor,
+  SpreadsheetEditorRef,
+} from '../../components/spreadsheet/SpreadsheetEditor'
+import { SpreadsheetToolbar } from '../../components/spreadsheet/SpreadsheetToolbar'
 import { DocumentSidebar } from '../../components/DocumentSidebar'
 import { useDocument, DocumentProvider } from '../../stores/DocumentContext'
 import { useAuth } from '../../stores/AuthContext'
@@ -14,6 +18,9 @@ const DocumentEditContent: React.FC = () => {
   const { document, loadDocument, updateDocument } = useDocument()
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
+  const spreadsheetRef = useRef<SpreadsheetEditorRef>(null)
+
+  const isEditor = user?.role !== 'viewer'
 
   useEffect(() => {
     if (id) {
@@ -50,6 +57,9 @@ const DocumentEditContent: React.FC = () => {
       <div
         style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 24, height: '100vh' }}
       >
+        <div style={{ marginBottom: 16 }}>
+          <SpreadsheetToolbar spreadsheetRef={spreadsheetRef} disabled={!isEditor} />
+        </div>
         <Card
           title={
             <Space>
@@ -81,6 +91,7 @@ const DocumentEditContent: React.FC = () => {
           style={{ flex: 1 }}
         >
           <SpreadsheetEditor
+            ref={spreadsheetRef}
             documentId={id!}
             userId={currentUserId}
             username={user?.username || ''}

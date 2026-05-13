@@ -10,20 +10,22 @@
 - Vite 5
 - Ant Design 5
 - Socket.io Client
-- @grapecity/spread-sheets
+- @grapecity-software/spread-sheets
+- @grapecity-software/spread-sheets-collaboration-client
 
 ### 后端
 
 - Express.js + TypeScript
 - Prisma ORM
-- MySQL 8.0
+- PostgreSQL 16
 - Socket.io
+- @grapecity-software/js-collaboration
 - Winston Logger
 
 ## 项目结构
 
 ```
-spreadjs/
+spreadDemo/
 ├── client/          # 前端项目
 ├── server/          # 后端项目
 ├── docker-compose.yml
@@ -35,7 +37,7 @@ spreadjs/
 ### 环境要求
 
 - Node.js 18+
-- MySQL 8.0
+- PostgreSQL 16
 - Docker (可选)
 
 ### 1. 安装依赖
@@ -51,50 +53,32 @@ cd server && npm install
 
 ### 2. 配置并初始化数据库
 
-#### 方式一：使用初始化脚本（推荐）
+#### 方式一：使用 Docker Compose（推荐）
 
 ```bash
-# 进入后端目录
-cd server
-
-# 运行初始化脚本（自动创建数据库 + Prisma 配置）
-npm run db:init
+docker-compose up -d postgres
 ```
 
-#### 方式二：手动初始化
+#### 方式二：本地 PostgreSQL
+
+确保 PostgreSQL 已启动，创建数据库：
 
 ```bash
-# 进入后端目录
+psql -U postgres -c "CREATE DATABASE spreadjs;"
+```
+
+#### 生成 Prisma Client
+
+```bash
 cd server
-
-# 1. 创建数据库（使用 docker-compose）
-docker-compose up -d mysql
-
-# 2. 创建数据库（本地 MySQL）
-#    确保 MySQL 已启动，并使用正确的密码（默认：123456）
-mysql -u root -p123456 -e "CREATE DATABASE IF NOT EXISTS spreadjs CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 3. 生成 Prisma Client（重要！）
 npm run db:generate
-
-# 4. 推送数据库 schema 到 MySQL
 npm run db:push
 ```
-
-#### 数据库配置
-
-环境变量配置在 `server/.env` 文件中：
-
-```env
-DATABASE_URL=mysql://root:123456@localhost:3306/spreadjs
-```
-
-**注意**：如果 MySQL 密码不是 `123456`，请修改 `.env` 文件中的密码。
 
 ### 3. 启动服务
 
 ```bash
-# 方式一：使用 monorepo 脚本同时启动前后端
+# 方式一：同时启动前后端
 npm run dev
 
 # 方式二：分别启动
@@ -109,14 +93,21 @@ npm run dev:client  # 前端（http://localhost:5173）
 
 ## 主要功能
 
-- ✅ 用户认证（JWT）
-- ✅ 文档 CRUD
-- ✅ 实时协同编辑
-- ✅ 快照管理
-- ✅ 操作历史
-- ✅ 文档分享
+- 用户认证（JWT）
+- 文档 CRUD
+- 实时协同编辑
+- 快照管理
+- 操作历史
+- 文档分享
+- 用户在线状态
 
 ## API 文档
+
+### 用户认证
+
+- `POST /api/users/register` - 用户注册
+- `POST /api/users/login` - 用户登录
+- `GET /api/users/me` - 获取当前用户
 
 ### 文档管理
 
@@ -125,6 +116,7 @@ npm run dev:client  # 前端（http://localhost:5173）
 - `GET /api/documents/:id` - 获取文档详情
 - `PUT /api/documents/:id` - 更新文档
 - `DELETE /api/documents/:id` - 删除文档
+- `POST /api/documents/:id/share` - 分享文档
 
 ### 快照管理
 
@@ -138,10 +130,20 @@ npm run dev:client  # 前端（http://localhost:5173）
 
 ## WebSocket 事件
 
+### 客户端发送
+
 - `join-document` - 加入文档协作
 - `leave-document` - 离开文档协作
 - `changeset` - 发送变更集
+- `cursor-move` - 光标移动
+- `presence-update` - 在线状态更新
+
+### 服务端发送
+
 - `changeset-sync` - 变更集同步
+- `user-joined` - 用户加入
+- `user-left` - 用户离开
+- `presence-changed` - 在线状态变更
 
 ## 开发指南
 
@@ -165,14 +167,12 @@ docker-compose up -d
 
 ### 环境变量
 
-详细配置请参考 `.env.example` 文件。
-
 #### 后端环境变量（server/.env）
 
 ```env
 NODE_ENV=development
 PORT=3000
-DATABASE_URL=mysql://user:password@localhost:3306/spreadjs
+DATABASE_URL=postgresql://spreadjs:spreadjs123@localhost:5432/spreadjs
 JWT_SECRET=your-jwt-secret-key
 CORS_ORIGIN=http://localhost:5173
 LOG_DIR=./logs
@@ -240,23 +240,23 @@ npx prisma db push
 
 **解决**：
 
-1. 检查 MySQL 是否启动
-2. 确认 `.env` 中的密码与 MySQL root 密码一致（默认：`123456`）
-3. 运行 `npm run db:init` 重新初始化
+1. 检查 PostgreSQL 是否启动
+2. 确认 `.env` 中的密码与 PostgreSQL 密码一致
+3. 运行 `npm run db:generate` 和 `npm run db:push` 重新初始化
 
 ### 3. 数据库连接错误
 
-**错误**：`Can't connect to MySQL server`
+**错误**：`Could not connect to database`
 
 **解决**：
 
-1. 确保 MySQL 正在运行：
+1. 确保 PostgreSQL 正在运行：
    ```bash
-   docker ps | grep mysql
+   docker ps | grep postgres
    ```
-2. 如果未运行，启动 MySQL：
+2. 如果未运行，启动 PostgreSQL：
    ```bash
-   docker-compose up -d mysql
+   docker-compose up -d postgres
    ```
 
 ### 4. 端口占用
@@ -276,26 +276,6 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
-### 6. 初始化脚本执行失败
-
-**解决**：手动执行：
-
-```bash
-cd server
-
-# 创建数据库
-mysql -u root -p123456 -e "CREATE DATABASE IF NOT EXISTS spreadjs CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 生成 Prisma Client
-npx prisma generate
-
-# 推送 Schema
-npx prisma db push
-
-# 启动服务器
-npm run dev
-```
-
 ## 项目模块说明
 
 ### 后端模块（server/src/）
@@ -305,17 +285,18 @@ npm run dev
 - **services/** - 服务层（业务逻辑）
 - **routes/** - 路由定义
 - **middleware/** - 中间件（认证、错误处理）
-- **websocket/** - WebSocket 处理
+- **collaboration/** - 协作逻辑处理
 - **logger/** - 日志系统
 - **types/** - TypeScript 类型定义
 
 ### 前端模块（client/src/）
 
 - **components/** - React 组件
+  - **spreadsheet/** - 表格编辑器组件
 - **pages/** - 页面组件
 - **hooks/** - 自定义 Hooks
-- **services/** - API 服务层
-- **stores/** - 状态管理
+- **services/api/** - API 服务层
+- **stores/** - 状态管理（React Context）
 
 ## License
 

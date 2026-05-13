@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Button, Space, Card, Input, Modal, message } from 'antd'
 import { PlusOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { documentService, Document } from '../../services/api/document.service'
-
-const { Search } = Input
 
 export default function DocumentListPage() {
   const navigate = useNavigate()
@@ -13,7 +11,7 @@ export default function DocumentListPage() {
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 20,
-    total: 0
+    total: 0,
   })
   const [createModalVisible, setCreateModalVisible] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -148,7 +146,7 @@ export default function DocumentListPage() {
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: total => `共 ${total} 条`,
             onChange: (page, pageSize) => loadDocuments(page, pageSize),
           }}
         />
@@ -168,7 +166,7 @@ export default function DocumentListPage() {
         <Input
           placeholder="请输入文档标题"
           value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
+          onChange={e => setNewTitle(e.target.value)}
           onPressEnter={handleCreate}
         />
       </Modal>

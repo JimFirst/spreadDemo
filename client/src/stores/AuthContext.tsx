@@ -5,6 +5,7 @@ interface User {
   id: string
   username: string
   email?: string
+  role?: 'viewer' | 'editor'
 }
 
 interface AuthContextType {
