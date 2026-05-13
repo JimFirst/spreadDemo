@@ -21,10 +21,15 @@ export const SpreadsheetEditor = forwardRef<SpreadsheetEditorRef, SpreadsheetEdi
     const serverUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
 
     const getWorkbook = useCallback(() => spreadRef.current, [])
+    const operationsRef = useRef<SpreadsheetEditorRef | null>(null)
 
-    const operations = useRef(createSpreadOperations(getWorkbook)).current
+    if (!operationsRef.current) {
+      operationsRef.current = createSpreadOperations(getWorkbook)
+    } else {
+      Object.assign(operationsRef.current, createSpreadOperations(getWorkbook))
+    }
 
-    useImperativeHandle(ref, () => operations, [operations])
+    useImperativeHandle(ref, () => operationsRef.current as SpreadsheetEditorRef)
 
     const handleCollaborativeError = useCallback(
       (error: Error & { code?: number }) => {

@@ -7,7 +7,7 @@ import {
   bindPresence,
   IChangeSet,
   IPresence,
-  IUserWithPermission,
+  IUser,
 } from '@grapecity-software/spread-sheets-collaboration-client'
 import { Presence } from '@grapecity-software/js-collaboration-presence-client'
 import '@grapecity-software/spread-sheets-collaboration-addon'
@@ -149,7 +149,7 @@ export const useSpreadCollaboration = ({
               ? GC.Spread.Sheets.Collaboration.BrowsingMode.view
               : GC.Spread.Sheets.Collaboration.BrowsingMode.edit
 
-          const user: IUserWithPermission = {
+          const user: IUser = {
             id: userId,
             name: username,
             permission: {

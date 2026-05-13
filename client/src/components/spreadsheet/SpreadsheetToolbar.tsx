@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { Button, Space, Tooltip, Dropdown, message } from 'antd'
 import {
   PlusOutlined,
   DeleteOutlined,
   LockOutlined,
   UnlockOutlined,
+  UploadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { SpreadsheetEditorRef } from './SpreadsheetEditor'
@@ -12,12 +14,18 @@ import { SpreadsheetEditorRef } from './SpreadsheetEditor'
 interface SpreadsheetToolbarProps {
   spreadsheetRef: React.RefObject<SpreadsheetEditorRef | null>
   disabled?: boolean
+  fileName?: string
 }
 
 export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
   spreadsheetRef,
   disabled = false,
+  fileName,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
   const handleFreezeRow = (count: number) => {
     spreadsheetRef.current?.freezeRow(count)
     message.success(`已冻结顶部 ${count} 行`)
@@ -41,6 +49,53 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
   const handleUnfreeze = () => {
     spreadsheetRef.current?.unfreezeAll()
     message.success('已解除所有冻结')
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    try {
+      setImporting(true)
+      if (!spreadsheetRef.current) {
+        throw new Error('表格尚未初始化')
+      }
+      if (typeof spreadsheetRef.current.importExcel !== 'function') {
+        throw new Error('表格导入能力尚未初始化')
+      }
+      await spreadsheetRef.current.importExcel(file)
+      message.success('Excel 导入成功')
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Excel 导入失败')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      setExporting(true)
+      if (!spreadsheetRef.current) {
+        throw new Error('表格尚未初始化')
+      }
+      if (typeof spreadsheetRef.current.exportExcel !== 'function') {
+        throw new Error('表格导出能力尚未初始化')
+      }
+      await spreadsheetRef.current.exportExcel(fileName)
+      message.success('Excel 导出成功')
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Excel 导出失败')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const freezeRowMenuItems: MenuProps['items'] = [
@@ -71,6 +126,31 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
 
   return (
     <Space wrap>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleImportChange}
+        style={{ display: 'none' }}
+      />
+      <Tooltip title="导入外部 Excel 并呈现在当前表格">
+        <Button
+          icon={<UploadOutlined />}
+          onClick={handleImportClick}
+          disabled={disabled}
+          loading={importing}
+        >
+          导入
+        </Button>
+      </Tooltip>
+      <Tooltip title="导出当前表格为 Excel">
+        <Button icon={<DownloadOutlined />} onClick={handleExport} loading={exporting}>
+          导出
+        </Button>
+      </Tooltip>
+
+      <div style={{ width: 1, height: 24, background: '#d9d9d9', margin: '0 8px' }} />
+
       <Tooltip title="在上方插入行">
         <Button
           icon={<PlusOutlined />}

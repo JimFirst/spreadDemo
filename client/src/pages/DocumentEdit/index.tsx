@@ -51,6 +51,7 @@ const DocumentEditContent: React.FC = () => {
   }
 
   const currentUserId = user?.id || ''
+  const exportFileName = `${title || document.title}.xlsx`
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -58,7 +59,11 @@ const DocumentEditContent: React.FC = () => {
         style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 24, height: '100vh' }}
       >
         <div style={{ marginBottom: 16 }}>
-          <SpreadsheetToolbar spreadsheetRef={spreadsheetRef} disabled={!isEditor} />
+          <SpreadsheetToolbar
+            spreadsheetRef={spreadsheetRef}
+            disabled={!isEditor}
+            fileName={exportFileName}
+          />
         </div>
         <Card
           title={
