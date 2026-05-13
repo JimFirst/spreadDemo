@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Button, Space, Card, Input, Modal, message } from 'antd'
 import { PlusOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
@@ -16,27 +16,27 @@ export default function DocumentListPage() {
   const [createModalVisible, setCreateModalVisible] = useState(false)
   const [newTitle, setNewTitle] = useState('')
 
-  const loadDocuments = async (page = 1, pageSize = 20) => {
+  const loadDocuments = useCallback(async (page = 1, pageSize = 20) => {
     setLoading(true)
     try {
       const response = await documentService.getDocuments(page, pageSize)
       setDocuments(response.data.list)
-      setPagination({
-        ...pagination,
+      setPagination(currentPagination => ({
+        ...currentPagination,
         current: page,
         pageSize,
         total: response.data.pagination.total,
-      })
+      }))
     } catch (error) {
       message.error('加载文档列表失败')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadDocuments()
-  }, [])
+  }, [loadDocuments])
 
   const handleCreate = async () => {
     if (!newTitle.trim()) {
@@ -102,7 +102,7 @@ export default function DocumentListPage() {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Document) => (
+      render: (_: unknown, record: Document) => (
         <Space>
           <Button
             type="link"

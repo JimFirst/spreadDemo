@@ -17,5 +17,8 @@
     "lint": "npm run lint:server && npm run lint:client",
     "lint:server": "cd server && npm run lint",
     "lint:client": "cd client && npm run lint"
+  },
+  "dependencies": {
+    "@grapecity-software/js-collaboration-presence-client": "^19.0.3"
   }
 }
