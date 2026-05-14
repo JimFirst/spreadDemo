@@ -58,6 +58,11 @@ export const createSpreadOperations = (
     URL.revokeObjectURL(url)
   }
 
+  const normalizeExcelFileName = (fileName: string) => {
+    const safeName = fileName.trim().replace(/[\\/:*?"<>|]/g, '_') || 'spreadsheet'
+    return safeName.toLowerCase().endsWith('.xlsx') ? safeName : `${safeName}.xlsx`
+  }
+
   return {
     addRow: (position: 'above' | 'below') => {
       const sheet = getActiveSheet()
@@ -133,9 +138,7 @@ export const createSpreadOperations = (
     },
     exportExcel: (fileName = 'spreadsheet.xlsx') => {
       const workbook = getWorkbookOrThrow()
-      const normalizedFileName = fileName.toLowerCase().endsWith('.xlsx')
-        ? fileName
-        : `${fileName}.xlsx`
+      const normalizedFileName = normalizeExcelFileName(fileName)
 
       return new Promise<void>((resolve, reject) => {
         excelIO.save(
