@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { Button, Space, Tooltip, Dropdown, message } from 'antd'
 import {
+  DatabaseOutlined,
   PlusOutlined,
   DeleteOutlined,
   LockOutlined,
@@ -25,6 +26,18 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
+
+  const runOperation = (operation: (spreadsheet: SpreadsheetEditorRef) => void, successMessage: string) => {
+    try {
+      if (!spreadsheetRef.current) {
+        throw new Error('表格尚未初始化')
+      }
+      operation(spreadsheetRef.current)
+      message.success(successMessage)
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '操作失败')
+    }
+  }
 
   const handleFreezeRow = (count: number) => {
     spreadsheetRef.current?.freezeRow(count)
@@ -124,6 +137,74 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
     { key: 3, label: '冻结 3 尾随列', onClick: () => handleFreezeTrailingColumn(3) },
   ]
 
+  const cellMenuItems: MenuProps['items'] = [
+    {
+      key: 'dropdown',
+      label: '选区设置状态下拉',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.applyDropdownToSelection(), '已为选区设置下拉'),
+    },
+    {
+      key: 'lock',
+      label: '锁定选区',
+      onClick: () => runOperation(spreadsheet => spreadsheet.lockSelection(), '已锁定选区'),
+    },
+    {
+      key: 'unlock',
+      label: '解锁选区',
+      onClick: () => runOperation(spreadsheet => spreadsheet.unlockSelection(), '已解锁选区'),
+    },
+  ]
+
+  const rowColumnMenuItems: MenuProps['items'] = [
+    {
+      key: 'row-height',
+      label: '选中行高度 36',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.setSelectedRowHeight(36), '已设置选中行高度'),
+    },
+    {
+      key: 'column-width',
+      label: '选中列宽度 140',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.setSelectedColumnWidth(140), '已设置选中列宽度'),
+    },
+    {
+      key: 'hide-rows',
+      label: '隐藏选中行',
+      onClick: () => runOperation(spreadsheet => spreadsheet.hideSelectedRows(), '已隐藏选中行'),
+    },
+    {
+      key: 'show-rows',
+      label: '显示所有行',
+      onClick: () => runOperation(spreadsheet => spreadsheet.showAllRows(), '已显示所有行'),
+    },
+    {
+      key: 'hide-columns',
+      label: '隐藏选中列',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.hideSelectedColumns(), '已隐藏选中列'),
+    },
+    {
+      key: 'show-columns',
+      label: '显示所有列',
+      onClick: () => runOperation(spreadsheet => spreadsheet.showAllColumns(), '已显示所有列'),
+    },
+  ]
+
+  const protectionMenuItems: MenuProps['items'] = [
+    {
+      key: 'protect',
+      label: '保护工作表',
+      onClick: () => runOperation(spreadsheet => spreadsheet.protectSheet(), '已保护工作表'),
+    },
+    {
+      key: 'unprotect',
+      label: '取消保护',
+      onClick: () => runOperation(spreadsheet => spreadsheet.unprotectSheet(), '已取消保护'),
+    },
+  ]
+
   return (
     <Space wrap>
       <input
@@ -151,10 +232,35 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
 
       <div style={{ width: 1, height: 24, background: '#d9d9d9', margin: '0 8px' }} />
 
+      <Tooltip title="加载模拟数据库数据">
+        <Button
+          icon={<DatabaseOutlined />}
+          onClick={() =>
+            runOperation(spreadsheet => spreadsheet.loadDatabaseData(), '已加载模拟数据库数据')
+          }
+          disabled={disabled}
+        >
+          加载数据
+        </Button>
+      </Tooltip>
+      <Dropdown menu={{ items: cellMenuItems }} trigger={['click']}>
+        <Button disabled={disabled}>单元格</Button>
+      </Dropdown>
+      <Dropdown menu={{ items: rowColumnMenuItems }} trigger={['click']}>
+        <Button disabled={disabled}>行列控制</Button>
+      </Dropdown>
+      <Dropdown menu={{ items: protectionMenuItems }} trigger={['click']}>
+        <Button icon={<LockOutlined />} disabled={disabled}>
+          保护
+        </Button>
+      </Dropdown>
+
+      <div style={{ width: 1, height: 24, background: '#d9d9d9', margin: '0 8px' }} />
+
       <Tooltip title="在上方插入行">
         <Button
           icon={<PlusOutlined />}
-          onClick={() => spreadsheetRef.current?.addRow('above')}
+          onClick={() => runOperation(spreadsheet => spreadsheet.addRow('above'), '已在上方插入行')}
           disabled={disabled}
         >
           上行
@@ -163,7 +269,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <Tooltip title="在下方插入行">
         <Button
           icon={<PlusOutlined />}
-          onClick={() => spreadsheetRef.current?.addRow('below')}
+          onClick={() => runOperation(spreadsheet => spreadsheet.addRow('below'), '已在下方插入行')}
           disabled={disabled}
         >
           下行
@@ -172,7 +278,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <Tooltip title="在左侧插入列">
         <Button
           icon={<PlusOutlined />}
-          onClick={() => spreadsheetRef.current?.addColumn('left')}
+          onClick={() => runOperation(spreadsheet => spreadsheet.addColumn('left'), '已在左侧插入列')}
           disabled={disabled}
         >
           左列
@@ -181,7 +287,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <Tooltip title="在右侧插入列">
         <Button
           icon={<PlusOutlined />}
-          onClick={() => spreadsheetRef.current?.addColumn('right')}
+          onClick={() => runOperation(spreadsheet => spreadsheet.addColumn('right'), '已在右侧插入列')}
           disabled={disabled}
         >
           右列
@@ -190,7 +296,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <Tooltip title="删除当前行">
         <Button
           icon={<DeleteOutlined />}
-          onClick={() => spreadsheetRef.current?.deleteRow()}
+          onClick={() => runOperation(spreadsheet => spreadsheet.deleteRow(), '已删除当前行')}
           disabled={disabled}
         >
           删行
@@ -199,7 +305,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <Tooltip title="删除当前列">
         <Button
           icon={<DeleteOutlined />}
-          onClick={() => spreadsheetRef.current?.deleteColumn()}
+          onClick={() => runOperation(spreadsheet => spreadsheet.deleteColumn(), '已删除当前列')}
           disabled={disabled}
         >
           删列
