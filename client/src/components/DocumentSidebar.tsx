@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button, Select, message, Modal, Input, Tabs, Tag, Space, AutoComplete } from 'antd'
 import { UserAddOutlined, LinkOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons'
 import { documentService, DocumentMember, ShareLink } from '../services/api/document.service'
@@ -9,17 +9,18 @@ interface Props {
   currentUserId: string
 }
 
+interface ShareUser {
+  id: string
+  username: string
+}
+
 export const DocumentSidebar: React.FC<Props> = ({ documentId, currentUserId }) => {
   const [members, setMembers] = useState<DocumentMember[]>([])
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([])
   const [showShareModal, setShowShareModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'users' | 'links'>('users')
 
-  useEffect(() => {
-    loadData()
-  }, [documentId])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [membersRes, linksRes] = await Promise.all([
         documentService.getDocumentMembers(documentId),
@@ -30,7 +31,11 @@ export const DocumentSidebar: React.FC<Props> = ({ documentId, currentUserId }) 
     } catch {
       message.error('加载数据失败')
     }
-  }
+  }, [documentId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleRemoveMember = async (userId: string) => {
     try {
@@ -89,10 +94,12 @@ export const DocumentSidebar: React.FC<Props> = ({ documentId, currentUserId }) 
         backgroundColor: 'white',
         borderLeft: '1px solid #e5e7eb',
         padding: 16,
-        overflowY: 'auto',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
+        minHeight: 0,
+        boxSizing: 'border-box',
       }}
     >
       <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>文档设置</h2>
@@ -112,135 +119,137 @@ export const DocumentSidebar: React.FC<Props> = ({ documentId, currentUserId }) 
         ]}
       />
 
-      {activeTab === 'users' && (
-        <div style={{ flex: 1 }}>
-          <Space direction="vertical" style={{ width: '100%', gap: 8 }}>
-            {members.map(member => (
-              <div
-                key={member.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 12,
-                  backgroundColor: '#f9fafb',
-                  borderRadius: 8,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 14,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {member.user?.username?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{member.user?.username || '未知用户'}</div>
-                    <div>{getRoleTag(member.role)}</div>
-                  </div>
-                </div>
-                {isOwner && member.role !== 'owner' && (
-                  <Space size={4}>
-                    <Select
-                      value={member.role}
-                      onChange={value => handleUpdateRole(member.userId, value)}
-                      size="small"
-                      style={{ width: 80 }}
-                      options={[
-                        { value: 'viewer', label: '只读' },
-                        { value: 'editor', label: '编辑' },
-                      ]}
-                    />
-                    <Button
-                      type="text"
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleRemoveMember(member.userId)}
-                    />
-                  </Space>
-                )}
-              </div>
-            ))}
-          </Space>
-          <Button
-            type="primary"
-            icon={<UserAddOutlined />}
-            onClick={() => setShowShareModal(true)}
-            style={{ marginTop: 16, width: '100%' }}
-          >
-            添加成员
-          </Button>
-        </div>
-      )}
-
-      {activeTab === 'links' && (
-        <div style={{ flex: 1 }}>
-          <Space direction="vertical" style={{ width: '100%', gap: 8 }}>
-            {shareLinks.map(link => (
-              <div
-                key={link.id}
-                style={{ padding: 12, backgroundColor: '#f9fafb', borderRadius: 8 }}
-              >
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
+        {activeTab === 'users' && (
+          <div>
+            <Space direction="vertical" style={{ width: '100%', gap: 8 }}>
+              {members.map(member => (
                 <div
+                  key={member.id}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginBottom: 8,
+                    padding: 12,
+                    backgroundColor: '#f9fafb',
+                    borderRadius: 8,
                   }}
                 >
-                  <span style={{ fontSize: 14, fontWeight: 500 }}>
-                    {link.permission === 'edit' ? '编辑链接' : '只读链接'}
-                  </span>
-                  <Tag color={link.permission === 'edit' ? 'blue' : 'green'}>
-                    {link.permission === 'edit' ? '可编辑' : '只读'}
-                  </Tag>
-                </div>
-                {link.expiresAt && (
-                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
-                    过期时间: {new Date(link.expiresAt).toLocaleDateString()}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 14,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {member.user?.username?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{member.user?.username || '未知用户'}</div>
+                      <div>{getRoleTag(member.role)}</div>
+                    </div>
                   </div>
-                )}
-                <Space size={4}>
-                  <Input size="small" readOnly value={link.link} style={{ flex: 1 }} />
-                  <Button
-                    size="small"
-                    icon={<CopyOutlined />}
-                    onClick={() => copyToClipboard(link.link)}
-                  />
-                  {isOwner && (
+                  {isOwner && member.role !== 'owner' && (
+                    <Space size={4}>
+                      <Select
+                        value={member.role}
+                        onChange={value => handleUpdateRole(member.userId, value)}
+                        size="small"
+                        style={{ width: 80 }}
+                        options={[
+                          { value: 'viewer', label: '只读' },
+                          { value: 'editor', label: '编辑' },
+                        ]}
+                      />
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveMember(member.userId)}
+                      />
+                    </Space>
+                  )}
+                </div>
+              ))}
+            </Space>
+            <Button
+              type="primary"
+              icon={<UserAddOutlined />}
+              onClick={() => setShowShareModal(true)}
+              style={{ marginTop: 16, width: '100%' }}
+            >
+              添加成员
+            </Button>
+          </div>
+        )}
+
+        {activeTab === 'links' && (
+          <div>
+            <Space direction="vertical" style={{ width: '100%', gap: 8 }}>
+              {shareLinks.map(link => (
+                <div
+                  key={link.id}
+                  style={{ padding: 12, backgroundColor: '#f9fafb', borderRadius: 8 }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                      {link.permission === 'edit' ? '编辑链接' : '只读链接'}
+                    </span>
+                    <Tag color={link.permission === 'edit' ? 'blue' : 'green'}>
+                      {link.permission === 'edit' ? '可编辑' : '只读'}
+                    </Tag>
+                  </div>
+                  {link.expiresAt && (
+                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+                      过期时间: {new Date(link.expiresAt).toLocaleDateString()}
+                    </div>
+                  )}
+                  <Space size={4}>
+                    <Input size="small" readOnly value={link.link} style={{ flex: 1 }} />
                     <Button
                       size="small"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleDeleteLink(link.id)}
+                      icon={<CopyOutlined />}
+                      onClick={() => copyToClipboard(link.link)}
                     />
-                  )}
-                </Space>
-              </div>
-            ))}
-          </Space>
-          <Button
-            type="primary"
-            icon={<LinkOutlined />}
-            onClick={() => setShowShareModal(true)}
-            style={{ marginTop: 16, width: '100%' }}
-          >
-            生成链接
-          </Button>
-        </div>
-      )}
+                    {isOwner && (
+                      <Button
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDeleteLink(link.id)}
+                      />
+                    )}
+                  </Space>
+                </div>
+              ))}
+            </Space>
+            <Button
+              type="primary"
+              icon={<LinkOutlined />}
+              onClick={() => setShowShareModal(true)}
+              style={{ marginTop: 16, width: '100%' }}
+            >
+              生成链接
+            </Button>
+          </div>
+        )}
+      </div>
 
       {showShareModal && (
         <ShareModal
@@ -269,7 +278,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ documentId, initialTab, members
   const [permission, setPermission] = useState<'read' | 'edit'>('read')
   const [generatedLink, setGeneratedLink] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [allUsers, setAllUsers] = useState<any[]>([])
+  const [allUsers, setAllUsers] = useState<ShareUser[]>([])
   const [searchValue, setSearchValue] = useState('')
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [usersLoading, setUsersLoading] = useState(false)
