@@ -13,6 +13,13 @@ export interface SpreadOperations {
   unfreezeAll: () => void
   loadDatabaseData: () => void
   applyDropdownToSelection: () => void
+  mergeSelection: () => void
+  unmergeSelection: () => void
+  setSelectionHorizontalAlign: (align: GC.Spread.Sheets.HorizontalAlign) => void
+  setSelectionVerticalAlign: (align: GC.Spread.Sheets.VerticalAlign) => void
+  setSelectionWordWrap: (enabled: boolean) => void
+  increaseSelectionIndent: () => void
+  decreaseSelectionIndent: () => void
   lockSelection: () => void
   unlockSelection: () => void
   protectSheet: () => void
@@ -138,6 +145,14 @@ export const createSpreadOperations = (
     if (shouldRestoreProtection) {
       protectSheetInternal(sheet)
     }
+  }
+
+  const getSelectionStyle = () => {
+    const sheet = getActiveSheet()
+    if (!sheet) return null
+
+    const { row, col } = getSelectionRange()
+    return sheet.getStyle(row, col, GC.Spread.Sheets.SheetArea.viewport)
   }
 
   const getWorkbookOrThrow = () => {
@@ -284,6 +299,79 @@ export const createSpreadOperations = (
       runWithSheetUnprotected(sheet, () => {
         sheet.getRange(row, col, rowCount, colCount).cellType(comboBox).locked(false)
       })
+    },
+    mergeSelection: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      ensureSheetEditable(sheet, '合并单元格')
+      const { row, col, rowCount, colCount } = getSelectionRange()
+      if (rowCount <= 1 && colCount <= 1) {
+        throw new Error('请选择至少两个单元格再合并')
+      }
+
+      sheet.addSpan(row, col, rowCount, colCount, GC.Spread.Sheets.SheetArea.viewport)
+    },
+    unmergeSelection: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      ensureSheetEditable(sheet, '取消合并')
+      const { row, col, rowCount, colCount } = getSelectionRange()
+      const spans = sheet.getSpans(
+        new GC.Spread.Sheets.Range(row, col, rowCount, colCount),
+        GC.Spread.Sheets.SheetArea.viewport
+      )
+
+      if (!spans.length) {
+        throw new Error('当前选区没有合并单元格')
+      }
+
+      spans.forEach(span => {
+        sheet.removeSpan(span.row, span.col, GC.Spread.Sheets.SheetArea.viewport)
+      })
+    },
+    setSelectionHorizontalAlign: (align: GC.Spread.Sheets.HorizontalAlign) => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      ensureSheetEditable(sheet, '设置水平对齐')
+      const { row, col, rowCount, colCount } = getSelectionRange()
+      sheet.getRange(row, col, rowCount, colCount).hAlign(align)
+    },
+    setSelectionVerticalAlign: (align: GC.Spread.Sheets.VerticalAlign) => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      ensureSheetEditable(sheet, '设置垂直对齐')
+      const { row, col, rowCount, colCount } = getSelectionRange()
+      sheet.getRange(row, col, rowCount, colCount).vAlign(align)
+    },
+    setSelectionWordWrap: (enabled: boolean) => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      ensureSheetEditable(sheet, '设置自动换行')
+      const { row, col, rowCount, colCount } = getSelectionRange()
+      sheet.getRange(row, col, rowCount, colCount).wordWrap(enabled)
+    },
+    increaseSelectionIndent: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      ensureSheetEditable(sheet, '增加缩进')
+      const { row, col, rowCount, colCount } = getSelectionRange()
+      const currentIndent = getSelectionStyle()?.textIndent || 0
+      sheet.getRange(row, col, rowCount, colCount).textIndent(currentIndent + 1)
+    },
+    decreaseSelectionIndent: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      ensureSheetEditable(sheet, '减少缩进')
+      const { row, col, rowCount, colCount } = getSelectionRange()
+      const currentIndent = getSelectionStyle()?.textIndent || 0
+      sheet.getRange(row, col, rowCount, colCount).textIndent(Math.max(0, currentIndent - 1))
     },
     lockSelection: () => {
       const sheet = getActiveSheet()

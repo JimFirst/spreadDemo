@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Button, Space, Tooltip, Dropdown, message } from 'antd'
+import GC from '@grapecity-software/spread-sheets'
 import {
   DatabaseOutlined,
   PlusOutlined,
@@ -145,6 +146,16 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
         runOperation(spreadsheet => spreadsheet.applyDropdownToSelection(), '已为选区设置下拉'),
     },
     {
+      key: 'merge',
+      label: '合并选区',
+      onClick: () => runOperation(spreadsheet => spreadsheet.mergeSelection(), '已合并选区'),
+    },
+    {
+      key: 'unmerge',
+      label: '取消合并',
+      onClick: () => runOperation(spreadsheet => spreadsheet.unmergeSelection(), '已取消合并'),
+    },
+    {
       key: 'lock',
       label: '锁定选区',
       onClick: () => runOperation(spreadsheet => spreadsheet.lockSelection(), '已锁定选区'),
@@ -153,6 +164,98 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       key: 'unlock',
       label: '解锁选区',
       onClick: () => runOperation(spreadsheet => spreadsheet.unlockSelection(), '已解锁选区'),
+    },
+  ]
+
+  const layoutMenuItems: MenuProps['items'] = [
+    {
+      key: 'h-left',
+      label: '水平左对齐',
+      onClick: () =>
+        runOperation(
+          spreadsheet =>
+            spreadsheet.setSelectionHorizontalAlign(GC.Spread.Sheets.HorizontalAlign.left),
+          '已设置水平左对齐'
+        ),
+    },
+    {
+      key: 'h-center',
+      label: '水平居中',
+      onClick: () =>
+        runOperation(
+          spreadsheet =>
+            spreadsheet.setSelectionHorizontalAlign(GC.Spread.Sheets.HorizontalAlign.center),
+          '已设置水平居中'
+        ),
+    },
+    {
+      key: 'h-right',
+      label: '水平右对齐',
+      onClick: () =>
+        runOperation(
+          spreadsheet =>
+            spreadsheet.setSelectionHorizontalAlign(GC.Spread.Sheets.HorizontalAlign.right),
+          '已设置水平右对齐'
+        ),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'v-top',
+      label: '垂直置顶',
+      onClick: () =>
+        runOperation(
+          spreadsheet => spreadsheet.setSelectionVerticalAlign(GC.Spread.Sheets.VerticalAlign.top),
+          '已设置垂直置顶'
+        ),
+    },
+    {
+      key: 'v-center',
+      label: '垂直居中',
+      onClick: () =>
+        runOperation(
+          spreadsheet =>
+            spreadsheet.setSelectionVerticalAlign(GC.Spread.Sheets.VerticalAlign.center),
+          '已设置垂直居中'
+        ),
+    },
+    {
+      key: 'v-bottom',
+      label: '垂直置底',
+      onClick: () =>
+        runOperation(
+          spreadsheet =>
+            spreadsheet.setSelectionVerticalAlign(GC.Spread.Sheets.VerticalAlign.bottom),
+          '已设置垂直置底'
+        ),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'wrap-on',
+      label: '开启自动换行',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.setSelectionWordWrap(true), '已开启自动换行'),
+    },
+    {
+      key: 'wrap-off',
+      label: '关闭自动换行',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.setSelectionWordWrap(false), '已关闭自动换行'),
+    },
+    {
+      key: 'indent-increase',
+      label: '增加缩进',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.increaseSelectionIndent(), '已增加缩进'),
+    },
+    {
+      key: 'indent-decrease',
+      label: '减少缩进',
+      onClick: () =>
+        runOperation(spreadsheet => spreadsheet.decreaseSelectionIndent(), '已减少缩进'),
     },
   ]
 
@@ -245,6 +348,9 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       </Tooltip>
       <Dropdown menu={{ items: cellMenuItems }} trigger={['click']}>
         <Button disabled={disabled}>单元格</Button>
+      </Dropdown>
+      <Dropdown menu={{ items: layoutMenuItems }} trigger={['click']}>
+        <Button disabled={disabled}>内容布局</Button>
       </Dropdown>
       <Dropdown menu={{ items: rowColumnMenuItems }} trigger={['click']}>
         <Button disabled={disabled}>行列控制</Button>
