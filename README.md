@@ -128,23 +128,6 @@ npm run dev:client  # 前端（http://localhost:5173）
 - `GET /api/documents/:id/changesets` - 获取变更集列表
 - `GET /api/documents/:id/changesets/:changesetId` - 获取变更集详情
 
-## WebSocket 事件
-
-### 客户端发送
-
-- `join-document` - 加入文档协作
-- `leave-document` - 离开文档协作
-- `changeset` - 发送变更集
-- `cursor-move` - 光标移动
-- `presence-update` - 在线状态更新
-
-### 服务端发送
-
-- `changeset-sync` - 变更集同步
-- `user-joined` - 用户加入
-- `user-left` - 用户离开
-- `presence-changed` - 在线状态变更
-
 ## 开发指南
 
 ### 代码规范

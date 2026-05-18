@@ -6,6 +6,7 @@ import { Presence } from '@grapecity-software/js-collaboration-presence-client'
 import '@grapecity-software/spread-sheets-collaboration-addon'
 import GC from '@grapecity-software/spread-sheets'
 import { documentService } from '../services/api/document.service'
+import { useDocument } from '@/stores/DocumentContext'
 
 const COLOR_SCHEME = ['#0000ff', '#008000', '#9900cc', '#800000', '#00cc33', '#cc6600', '#cc0099']
 
@@ -39,7 +40,7 @@ export const useSpreadCollaboration = ({
 
   const clientRef = useRef<Client | null>(null)
   const docRef = useRef<OT.SharedDoc | null>(null)
-  const presenceRef = useRef<Presence<any> | null>(null)
+  const presenceRef = useRef<Presence<GC.Spread.Sheets.PresenceData> | null>(null)
   const initCollaboration = async (documentId: string) => {
     try {
       const roleResponse = await documentService.getMyRole(documentId)
@@ -91,9 +92,11 @@ export const useSpreadCollaboration = ({
       disconnect()
     }
   }, [documentId])
+  const { setWorkbook } = useDocument()
 
   const bindWorkbook = useCallback(
     async (workbook: GC.Spread.Sheets.Workbook) => {
+      setWorkbook(workbook)
       if (docRef.current) {
         await docRef.current.fetch()
 
@@ -104,7 +107,7 @@ export const useSpreadCollaboration = ({
           }
         }
 
-        await bind(workbook, docRef.current as any)
+        await bind(workbook, docRef.current)
 
         if (presenceRef.current) {
           const permissionMode =

@@ -1,12 +1,17 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { documentService, Document } from '../services/api/document.service'
+import type GC from '@grapecity-software/spread-sheets'
 
+export type SpreadWorkbook = GC.Spread.Sheets.Workbook
 interface DocumentContextType {
   document: Document | null
   loading: boolean
   error: string | null
   loadDocument: (id: string) => Promise<void>
   updateDocument: (title: string) => Promise<void>
+  workbook: SpreadWorkbook | null
+  setWorkbook: (wb: SpreadWorkbook) => void
+  isReady: boolean
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined)
@@ -44,6 +49,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [document]
   )
 
+  const [isReady, setIsReady] = useState(false)
+  const workbookRef = useRef<SpreadWorkbook | null>(null)
+  const setWorkbook = useCallback((wb: SpreadWorkbook) => {
+    console.log('setWorkbook', wb)
+    workbookRef.current = wb
+    setIsReady(true)
+  }, [])
+
   return (
     <DocumentContext.Provider
       value={{
@@ -52,6 +65,11 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         error,
         loadDocument,
         updateDocument,
+        get workbook() {
+          return workbookRef.current
+        },
+        setWorkbook,
+        isReady,
       }}
     >
       {children}

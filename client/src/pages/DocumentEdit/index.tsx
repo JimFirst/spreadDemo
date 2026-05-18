@@ -2,14 +2,12 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button, Space, Card, Input, message } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import {
-  SpreadsheetEditor,
-  SpreadsheetEditorRef,
-} from '../../components/spreadsheet/SpreadsheetEditor'
-import { SpreadsheetToolbar } from '../../components/spreadsheet/SpreadsheetToolbar'
-import { DocumentSidebar } from '../../components/DocumentSidebar'
-import { useDocument, DocumentProvider } from '../../stores/DocumentContext'
-import { useAuth } from '../../stores/AuthContext'
+import { SpreadsheetEditor, SpreadsheetEditorRef } from '@/components/spreadsheet/SpreadsheetEditor'
+import { SpreadsheetToolbar } from '@/components/spreadsheet/SpreadsheetToolbar'
+import { DocumentSidebar } from '@/components/DocumentSidebar'
+import ChatPanel from '@/components/ChatPanel'
+import { useDocument, DocumentProvider } from '@/stores/DocumentContext'
+import { useAuth } from '@/stores/AuthContext'
 
 const DocumentEditContent: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +16,8 @@ const DocumentEditContent: React.FC = () => {
   const { document, loadDocument, updateDocument } = useDocument()
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
+  const [width, setWidth] = useState(300)
+
   const spreadsheetRef = useRef<SpreadsheetEditorRef>(null)
 
   const isEditor = user?.role !== 'viewer'
@@ -98,6 +98,7 @@ const DocumentEditContent: React.FC = () => {
           />
         </Card>
       </div>
+      <ChatPanel chatPanelWidth={width} onChatPanelWidthChange={setWidth} />
       <DocumentSidebar documentId={id!} currentUserId={currentUserId} />
     </div>
   )
