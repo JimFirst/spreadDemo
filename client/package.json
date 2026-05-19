@@ -17,6 +17,7 @@
     "@grapecity-software/js-collaboration-client": "^18.2.5",
     "@grapecity-software/js-collaboration-ot-client": "^18.2.5",
     "@grapecity-software/js-collaboration-presence-client": "^18.2.5",
+    "@grapecity-software/spread-excelio": "^18.2.5",
     "@grapecity-software/spread-sheets": "^18.2.5",
     "@grapecity-software/spread-sheets-collaboration-addon": "^18.2.5",
     "@grapecity-software/spread-sheets-collaboration-client": "^18.2.5",

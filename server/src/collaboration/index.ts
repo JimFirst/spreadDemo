@@ -40,6 +40,7 @@ export class CollaborationManager {
       connectionString: dbUrl,
     })
     this.dbAdapter = new PostgresDb(pool)
+    await this.dbAdapter.init()
     this.documentServices = new OT.DocumentServices({ db: this.dbAdapter })
     this.server.useFeature(OT.documentFeature(this.documentServices))
     this.server.useFeature(presenceFeature())

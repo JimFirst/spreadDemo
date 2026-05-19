@@ -51,14 +51,27 @@ const DocumentEditContent: React.FC = () => {
   }
 
   const currentUserId = user?.id || ''
+  const exportFileName = `${title || document.title}.xlsx`
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
+    <div style={{ display: 'flex', height: '100%', minHeight: 0, overflow: 'hidden' }}>
       <div
-        style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 24, height: '100vh' }}
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 24,
+          height: '100%',
+          minHeight: 0,
+          overflow: 'hidden',
+        }}
       >
         <div style={{ marginBottom: 16 }}>
-          <SpreadsheetToolbar spreadsheetRef={spreadsheetRef} disabled={!isEditor} />
+          <SpreadsheetToolbar
+            spreadsheetRef={spreadsheetRef}
+            disabled={!isEditor}
+            fileName={exportFileName}
+          />
         </div>
         <Card
           title={
@@ -88,7 +101,8 @@ const DocumentEditContent: React.FC = () => {
               )}
             </Space>
           }
-          style={{ flex: 1 }}
+          style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
+          styles={{ body: { height: 'calc(100% - 57px)', overflow: 'auto' } }}
         >
           <SpreadsheetEditor
             ref={spreadsheetRef}

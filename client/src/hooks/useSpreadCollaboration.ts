@@ -41,6 +41,8 @@ export const useSpreadCollaboration = ({
   const clientRef = useRef<Client | null>(null)
   const docRef = useRef<OT.SharedDoc | null>(null)
   const presenceRef = useRef<Presence<GC.Spread.Sheets.PresenceData> | null>(null)
+  const connectionRef = useRef<Connection | null>(null)
+
   const initCollaboration = async (documentId: string) => {
     try {
       const roleResponse = await documentService.getMyRole(documentId)
@@ -50,6 +52,7 @@ export const useSpreadCollaboration = ({
       OT.TypesManager.register(type)
 
       const client = new Client(serverUrl)
+      clientRef.current = client
 
       const connection = client.connect(documentId, {
         query: {
@@ -59,7 +62,7 @@ export const useSpreadCollaboration = ({
           token: userId,
         },
       })
-      clientRef.current = client
+      connectionRef.current = connection
 
       const doc = new OT.SharedDoc(connection)
       docRef.current = doc
@@ -75,6 +78,7 @@ export const useSpreadCollaboration = ({
       setIsConnected(true)
       setIsLoading(false)
     } catch (err) {
+      console.error('Error', err)
       const errorWithCode = err as Error & { code?: number }
       setError(errorWithCode)
       onError?.(errorWithCode)
@@ -140,6 +144,10 @@ export const useSpreadCollaboration = ({
     }
     if (presenceRef.current) {
       presenceRef.current = null
+    }
+    if (connectionRef.current) {
+      connectionRef.current?.close()
+      connectionRef.current = null
     }
     setIsConnected(false)
   }, [])

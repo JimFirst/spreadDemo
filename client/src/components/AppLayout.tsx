@@ -223,10 +223,12 @@ export const AppLayout: React.FC<Props> = ({ children }) => {
           style={{
             marginTop: 64,
             padding: 32,
-            minHeight: 'calc(100vh - 64px)',
+            height: 'calc(100vh - 64px)',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
           }}
         >
-          {children}
+          <div style={{ height: '100%', overflow: 'auto' }}>{children}</div>
         </Content>
       </Layout>
     </Layout>

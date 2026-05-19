@@ -52,7 +52,6 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isReady, setIsReady] = useState(false)
   const workbookRef = useRef<SpreadWorkbook | null>(null)
   const setWorkbook = useCallback((wb: SpreadWorkbook) => {
-    console.log('setWorkbook', wb)
     workbookRef.current = wb
     setIsReady(true)
   }, [])

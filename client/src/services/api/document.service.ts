@@ -17,7 +17,7 @@ export interface Document {
 export interface Snapshot {
   id: string
   documentId: string
-  data: any
+  data: unknown
   version: number
   createdAt: string
 }
@@ -86,7 +86,7 @@ export const documentService = {
     })
   },
 
-  createSnapshot(documentId: string, data: any) {
+  createSnapshot(documentId: string, data: unknown) {
     return axiosInstance.post(`/documents/${documentId}/snapshots`, { data })
   },
 

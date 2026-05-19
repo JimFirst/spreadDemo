@@ -2,6 +2,7 @@ import { useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
 import GC from '@grapecity-software/spread-sheets'
 import { SpreadSheets, Worksheet } from '@grapecity-software/spread-sheets-react'
 import '@grapecity-software/spread-sheets/styles/gc.spread.sheets.excel2013white.css'
+import { useDocument } from '@/stores/DocumentContext'
 import { useSpreadCollaboration } from '../../hooks/useSpreadCollaboration'
 import { createSpreadOperations, SpreadOperations } from '../../hooks/useSpreadOperations'
 import './SpreadsheetEditor.scss'
@@ -14,17 +15,19 @@ interface SpreadsheetEditorProps {
   userId: string
   username: string
 }
+const serverUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
 
 export const SpreadsheetEditor = forwardRef<SpreadsheetEditorRef, SpreadsheetEditorProps>(
   ({ documentId, onAccessDenied, userId, username }, ref) => {
-    const spreadRef = useRef<GC.Spread.Sheets.Workbook | null>(null)
-    const serverUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
+    const { workbook } = useDocument()
+    const workbookRef = useRef(workbook)
+    workbookRef.current = workbook
 
-    const getWorkbook = useCallback(() => spreadRef.current, [])
+    const getWorkbook = useCallback(() => workbookRef.current, [])
 
-    const operations = useRef(createSpreadOperations(getWorkbook)).current
+    const operationsRef = useRef(createSpreadOperations(getWorkbook))
 
-    useImperativeHandle(ref, () => operations, [operations])
+    useImperativeHandle(ref, () => operationsRef.current)
 
     const handleCollaborativeError = useCallback(
       (error: Error & { code?: number }) => {
@@ -45,7 +48,6 @@ export const SpreadsheetEditor = forwardRef<SpreadsheetEditorRef, SpreadsheetEdi
 
     const handleWorkbookInitialized = useCallback(
       (spread: GC.Spread.Sheets.Workbook) => {
-        spreadRef.current = spread
         bindWorkbook(spread)
       },
       [bindWorkbook]
