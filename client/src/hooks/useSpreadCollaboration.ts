@@ -55,9 +55,9 @@ export const useSpreadCollaboration = ({
       clientRef.current = client
 
       const connection = client.connect(documentId, {
-        query: {
-          id: documentId,
-        },
+        // query: {
+        //   id: documentId,
+        // },
         auth: {
           token: userId,
         },

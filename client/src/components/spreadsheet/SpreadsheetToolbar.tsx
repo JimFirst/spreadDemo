@@ -293,6 +293,27 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       label: '显示所有列',
       onClick: () => runOperation(spreadsheet => spreadsheet.showAllColumns(), '已显示所有列'),
     },
+    { type: 'divider' },
+    {
+      key: 'lock-rows',
+      label: '禁止编辑选中行',
+      onClick: () => runOperation(spreadsheet => spreadsheet.lockSelectedRows(), '已禁止编辑选中行'),
+    },
+    {
+      key: 'unlock-rows',
+      label: '解除行编辑禁止',
+      onClick: () => runOperation(spreadsheet => spreadsheet.unlockSelectedRows(), '已解除行编辑禁止'),
+    },
+    {
+      key: 'lock-columns',
+      label: '禁止编辑选中列',
+      onClick: () => runOperation(spreadsheet => spreadsheet.lockSelectedColumns(), '已禁止编辑选中列'),
+    },
+    {
+      key: 'unlock-columns',
+      label: '解除列编辑禁止',
+      onClick: () => runOperation(spreadsheet => spreadsheet.unlockSelectedColumns(), '已解除列编辑禁止'),
+    },
   ]
 
   const protectionMenuItems: MenuProps['items'] = [

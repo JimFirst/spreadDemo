@@ -356,7 +356,7 @@ export default function ChatPanel({ chatPanelWidth, onChatPanelWidthChange }: Ch
   // 每次渲染更新 ref，保证 handleSubmit（useCallback 闭包）拿到最新 workbook
   const workbookRef = useRef(workbook)
   workbookRef.current = workbook
-  const { info: sheetInfo, refresh: refreshSheetInfo } = useSheetInfo(workbook)
+  const { info: sheetInfo, refresh: refreshSheetInfo } = useSheetInfo(workbookRef.current)
   const serviceStatus = useServiceStatus()
   const serviceAvailable = serviceStatus.available
   const visionAvailable = serviceStatus.visionAvailable
@@ -790,6 +790,10 @@ export default function ChatPanel({ chatPanelWidth, onChatPanelWidthChange }: Ch
   // 每次渲染更新 ref，保证闭包拿到最新的 workbook 和 session.id
   const sendMessageWithSnapshotRef = useRef<(msg: { text: string }) => void>(() => {})
   sendMessageWithSnapshotRef.current = async (msg: { text: string }) => {
+    // 重置中断标记、agent 自动循环步数计数器
+    wasStoppedRef.current = false
+    autoStepCountRef.current = 0
+    setStepLimitPaused(false)
     if (workbook) {
       const snapshotId = `snap_${session.id}_${Date.now()}`
       setSavingSnapshot(true)
@@ -1087,7 +1091,7 @@ export default function ChatPanel({ chatPanelWidth, onChatPanelWidthChange }: Ch
   }, [handleStop, workbook, currentReplySnapshotId])
 
   return (
-    <div className="flex h-full flex-col bg-background relative">
+    <div className="flex h-full flex-col bg-background relative" style={{ width: chatPanelWidth }}>
       {/* 头部 */}
       <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-2.5">
         <div className="flex size-7 items-center justify-center rounded-lg bg-primary/10">

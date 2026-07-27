@@ -22,6 +22,10 @@ export interface SpreadOperations {
   decreaseSelectionIndent: () => void
   lockSelection: () => void
   unlockSelection: () => void
+  lockSelectedRows: () => void
+  unlockSelectedRows: () => void
+  lockSelectedColumns: () => void
+  unlockSelectedColumns: () => void
   protectSheet: () => void
   unprotectSheet: () => void
   setSelectedRowHeight: (height: number) => void
@@ -392,6 +396,66 @@ export const createSpreadOperations = (
       const { row, col, rowCount, colCount } = getSelectionRange()
       runWithSheetUnprotected(sheet, () => {
         sheet.getRange(row, col, rowCount, colCount).locked(false).backColor(undefined)
+      })
+    },
+    lockSelectedRows: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      const { row, rowCount } = getSelectionRange()
+      const wasProtected = isSheetProtected(sheet)
+      runWithSheetUnprotected(
+        sheet,
+        () => {
+          if (!wasProtected) {
+            sheet.getRange(0, 0, sheet.getRowCount(), sheet.getColumnCount()).locked(false)
+          }
+          for (let index = 0; index < rowCount; index += 1) {
+            sheet.getRange(row + index, 0, 1, sheet.getColumnCount()).locked(true).backColor('#f3f4f6')
+          }
+        },
+        true
+      )
+    },
+    unlockSelectedRows: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      const { row, rowCount } = getSelectionRange()
+      runWithSheetUnprotected(sheet, () => {
+        for (let index = 0; index < rowCount; index += 1) {
+          sheet.getRange(row + index, 0, 1, sheet.getColumnCount()).locked(false).backColor(undefined)
+        }
+      })
+    },
+    lockSelectedColumns: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      const { col, colCount } = getSelectionRange()
+      const wasProtected = isSheetProtected(sheet)
+      runWithSheetUnprotected(
+        sheet,
+        () => {
+          if (!wasProtected) {
+            sheet.getRange(0, 0, sheet.getRowCount(), sheet.getColumnCount()).locked(false)
+          }
+          for (let index = 0; index < colCount; index += 1) {
+            sheet.getRange(0, col + index, sheet.getRowCount(), 1).locked(true).backColor('#f3f4f6')
+          }
+        },
+        true
+      )
+    },
+    unlockSelectedColumns: () => {
+      const sheet = getActiveSheet()
+      if (!sheet) return
+
+      const { col, colCount } = getSelectionRange()
+      runWithSheetUnprotected(sheet, () => {
+        for (let index = 0; index < colCount; index += 1) {
+          sheet.getRange(0, col + index, sheet.getRowCount(), 1).locked(false).backColor(undefined)
+        }
       })
     },
     protectSheet: () => {

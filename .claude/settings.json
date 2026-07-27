@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker pull *)",
+      "Bash(curl -s --connect-timeout 10 --proxy-insecure -x http://127.0.0.1:7890 https://registry-1.docker.io/v2/ --tlsv1.2 -w \"\\\\n%{http_code}\")",
+      "Bash(curl -s --connect-timeout 8 -x socks5://127.0.0.1:7890 https://registry-1.docker.io/v2/ -w \"\\\\n%{http_code}\")",
+      "Bash(docker version *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

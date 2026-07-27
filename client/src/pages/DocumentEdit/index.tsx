@@ -16,7 +16,7 @@ const DocumentEditContent: React.FC = () => {
   const { document, loadDocument, updateDocument } = useDocument()
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
-  const [width, setWidth] = useState(300)
+  const [width, setWidth] = useState(450)
 
   const spreadsheetRef = useRef<SpreadsheetEditorRef>(null)
 
