@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { Button, Space, Tooltip, Dropdown, message } from 'antd'
 import GC from '@grapecity-software/spread-sheets'
 import {
@@ -9,31 +9,41 @@ import {
   UnlockOutlined,
   UploadOutlined,
   DownloadOutlined,
+  CloudOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
-import { SpreadsheetEditorRef } from './SpreadsheetEditor'
+import { createSpreadOperations, SpreadOperations } from '@/hooks/useSpreadOperations'
 
 interface SpreadsheetToolbarProps {
-  spreadsheetRef: React.RefObject<SpreadsheetEditorRef | null>
+  getWorkbook: () => GC.Spread.Sheets.Workbook | null
   disabled?: boolean
   fileName?: string
+  initCollaboration?: () => void
+  isCollaborating?: boolean
 }
 
 export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
-  spreadsheetRef,
+  getWorkbook,
   disabled = false,
   fileName,
+  initCollaboration,
+  isCollaborating = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
 
-  const runOperation = (operation: (spreadsheet: SpreadsheetEditorRef) => void, successMessage: string) => {
+  const spreadsheet = useMemo(() => createSpreadOperations(getWorkbook), [getWorkbook])
+
+  const runOperation = (
+    operation: (spreadsheet: SpreadOperations) => void,
+    successMessage: string
+  ) => {
     try {
-      if (!spreadsheetRef.current) {
+      if (!spreadsheet) {
         throw new Error('表格尚未初始化')
       }
-      operation(spreadsheetRef.current)
+      operation(spreadsheet)
       message.success(successMessage)
     } catch (error) {
       message.error(error instanceof Error ? error.message : '操作失败')
@@ -41,27 +51,27 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
   }
 
   const handleFreezeRow = (count: number) => {
-    spreadsheetRef.current?.freezeRow(count)
+    spreadsheet?.freezeRow(count)
     message.success(`已冻结顶部 ${count} 行`)
   }
 
   const handleFreezeColumn = (count: number) => {
-    spreadsheetRef.current?.freezeColumn(count)
+    spreadsheet?.freezeColumn(count)
     message.success(`已冻结左侧 ${count} 列`)
   }
 
   const handleFreezeTrailingRow = (count: number) => {
-    spreadsheetRef.current?.freezeTrailingRow(count)
+    spreadsheet?.freezeTrailingRow(count)
     message.success(`已冻结底部 ${count} 尾随行`)
   }
 
   const handleFreezeTrailingColumn = (count: number) => {
-    spreadsheetRef.current?.freezeTrailingColumn(count)
+    spreadsheet?.freezeTrailingColumn(count)
     message.success(`已冻结右侧 ${count} 尾随列`)
   }
 
   const handleUnfreeze = () => {
-    spreadsheetRef.current?.unfreezeAll()
+    spreadsheet?.unfreezeAll()
     message.success('已解除所有冻结')
   }
 
@@ -79,15 +89,16 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
 
     try {
       setImporting(true)
-      if (!spreadsheetRef.current) {
+      if (!spreadsheet) {
         throw new Error('表格尚未初始化')
       }
-      if (typeof spreadsheetRef.current.importExcel !== 'function') {
+      if (typeof spreadsheet.importExcel !== 'function') {
         throw new Error('表格导入能力尚未初始化')
       }
-      await spreadsheetRef.current.importExcel(file)
+      await spreadsheet.importExcel(file)
       message.success('Excel 导入成功')
     } catch (error) {
+      console.log(error)
       message.error(error instanceof Error ? error.message : 'Excel 导入失败')
     } finally {
       setImporting(false)
@@ -97,13 +108,13 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
   const handleExport = async () => {
     try {
       setExporting(true)
-      if (!spreadsheetRef.current) {
+      if (!spreadsheet) {
         throw new Error('表格尚未初始化')
       }
-      if (typeof spreadsheetRef.current.exportExcel !== 'function') {
+      if (typeof spreadsheet.exportExcel !== 'function') {
         throw new Error('表格导出能力尚未初始化')
       }
-      await spreadsheetRef.current.exportExcel(fileName)
+      await spreadsheet.exportExcel(fileName)
       message.success('Excel 导出成功')
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Excel 导出失败')
@@ -285,8 +296,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
     {
       key: 'hide-columns',
       label: '隐藏选中列',
-      onClick: () =>
-        runOperation(spreadsheet => spreadsheet.hideSelectedColumns(), '已隐藏选中列'),
+      onClick: () => runOperation(spreadsheet => spreadsheet.hideSelectedColumns(), '已隐藏选中列'),
     },
     {
       key: 'show-columns',
@@ -294,26 +304,6 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       onClick: () => runOperation(spreadsheet => spreadsheet.showAllColumns(), '已显示所有列'),
     },
     { type: 'divider' },
-    {
-      key: 'lock-rows',
-      label: '禁止编辑选中行',
-      onClick: () => runOperation(spreadsheet => spreadsheet.lockSelectedRows(), '已禁止编辑选中行'),
-    },
-    {
-      key: 'unlock-rows',
-      label: '解除行编辑禁止',
-      onClick: () => runOperation(spreadsheet => spreadsheet.unlockSelectedRows(), '已解除行编辑禁止'),
-    },
-    {
-      key: 'lock-columns',
-      label: '禁止编辑选中列',
-      onClick: () => runOperation(spreadsheet => spreadsheet.lockSelectedColumns(), '已禁止编辑选中列'),
-    },
-    {
-      key: 'unlock-columns',
-      label: '解除列编辑禁止',
-      onClick: () => runOperation(spreadsheet => spreadsheet.unlockSelectedColumns(), '已解除列编辑禁止'),
-    },
   ]
 
   const protectionMenuItems: MenuProps['items'] = [
@@ -334,7 +324,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".xlsx,.xls"
+        accept=".xlsx,.xls,.xlsm"
         onChange={handleImportChange}
         style={{ display: 'none' }}
       />
@@ -342,7 +332,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
         <Button
           icon={<UploadOutlined />}
           onClick={handleImportClick}
-          disabled={disabled}
+          disabled={disabled || isCollaborating}
           loading={importing}
         >
           导入
@@ -367,6 +357,18 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
           加载数据
         </Button>
       </Tooltip>
+      {initCollaboration && (
+        <Tooltip title={isCollaborating ? '已连接协同' : '开启协同编辑'}>
+          <Button
+            icon={<CloudOutlined />}
+            onClick={initCollaboration}
+            disabled={disabled || isCollaborating}
+            type={isCollaborating ? 'primary' : 'default'}
+          >
+            {isCollaborating ? '协同中' : '协同'}
+          </Button>
+        </Tooltip>
+      )}
       <Dropdown menu={{ items: cellMenuItems }} trigger={['click']}>
         <Button disabled={disabled}>单元格</Button>
       </Dropdown>
@@ -405,7 +407,9 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <Tooltip title="在左侧插入列">
         <Button
           icon={<PlusOutlined />}
-          onClick={() => runOperation(spreadsheet => spreadsheet.addColumn('left'), '已在左侧插入列')}
+          onClick={() =>
+            runOperation(spreadsheet => spreadsheet.addColumn('left'), '已在左侧插入列')
+          }
           disabled={disabled}
         >
           左列
@@ -414,7 +418,9 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
       <Tooltip title="在右侧插入列">
         <Button
           icon={<PlusOutlined />}
-          onClick={() => runOperation(spreadsheet => spreadsheet.addColumn('right'), '已在右侧插入列')}
+          onClick={() =>
+            runOperation(spreadsheet => spreadsheet.addColumn('right'), '已在右侧插入列')
+          }
           disabled={disabled}
         >
           右列

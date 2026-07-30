@@ -22,16 +22,17 @@ model User {
 }
 
 model Document {
-  id         String              @id @default(uuid())
-  title      String
-  creatorId  String
-  createdAt  DateTime            @default(now())
-  updatedAt  DateTime            @updatedAt
-  changesets ChangeSet[]
-  creator    User                @relation(fields: [creatorId], references: [id])
-  members    DocumentMember[]
-  shareLinks DocumentShareLink[]
-  snapshots  Snapshot[]
+  id               String              @id @default(uuid())
+  title            String
+  creatorId        String
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  isCollaborating  Boolean             @default(false)
+  changesets       ChangeSet[]
+  creator          User                @relation(fields: [creatorId], references: [id])
+  members          DocumentMember[]
+  shareLinks       DocumentShareLink[]
+  snapshots        Snapshot[]
 
   @@index([creatorId])
 }

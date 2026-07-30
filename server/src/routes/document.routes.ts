@@ -103,5 +103,11 @@ router.delete(
       .then(() => next())
       .catch(next)
 )
+router.patch('/:id/collaboration', documentAccessMiddleware, (req, res, next) =>
+  documentController
+    .updateCollaborationStatus(req, res, next)
+    .then(() => next())
+    .catch(next)
+)
 
 export default router

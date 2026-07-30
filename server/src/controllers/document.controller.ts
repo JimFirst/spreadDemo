@@ -233,6 +233,26 @@ export class DocumentController {
       message: '成员权限更新成功',
     })
   }
+
+  async updateCollaborationStatus(req: AuthenticatedRequest, res: Response) {
+    const { id } = req.params
+    const { isCollaborating } = req.body
+
+    if (typeof isCollaborating !== 'boolean') {
+      throw new AppError(400, 1001, 'isCollaborating 必须是布尔值')
+    }
+
+    const document = await prisma.document.update({
+      where: { id },
+      data: { isCollaborating },
+    })
+
+    res.json({
+      code: 0,
+      data: document,
+      message: '协同状态更新成功',
+    })
+  }
 }
 
 export const documentController = new DocumentController()

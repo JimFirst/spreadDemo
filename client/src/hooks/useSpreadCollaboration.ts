@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Client } from '@grapecity-software/js-collaboration-client'
 import * as OT from '@grapecity-software/js-collaboration-ot-client'
 import { type, bind, bindPresence } from '@grapecity-software/spread-sheets-collaboration-client'
@@ -6,16 +6,14 @@ import { Presence } from '@grapecity-software/js-collaboration-presence-client'
 import '@grapecity-software/spread-sheets-collaboration-addon'
 import GC from '@grapecity-software/spread-sheets'
 import { documentService } from '../services/api/document.service'
-import { useDocument } from '@/stores/DocumentContext'
 
 const COLOR_SCHEME = ['#0000ff', '#008000', '#9900cc', '#800000', '#00cc33', '#cc6600', '#cc0099']
+const serverUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
 
 interface UseSpreadCollaborationOptions {
-  documentId: string
-  serverUrl: string
-  onError?: (error: Error & { code?: number }) => void
   userId: string
   username: string
+  onError?: (error: Error & { code?: number }) => void
 }
 
 interface UseSpreadCollaborationReturn {
@@ -23,25 +21,27 @@ interface UseSpreadCollaborationReturn {
   isLoading: boolean
   error: Error | null
   userRole: 'editor' | 'viewer'
-  bindWorkbook: (workbook: GC.Spread.Sheets.Workbook) => void
+  initCollData: (workbook: GC.Spread.Sheets.Workbook, snapshot?: unknown) => Promise<void>
+  initCollaboration: (documentId: string) => Promise<void>
+  disconnect: () => void
 }
 
 export const useSpreadCollaboration = ({
-  documentId,
-  serverUrl,
-  onError,
   userId,
   username,
+  onError,
 }: UseSpreadCollaborationOptions): UseSpreadCollaborationReturn => {
   const [isConnected, setIsConnected] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [userRole, setUserRole] = useState<'editor' | 'viewer'>('editor')
 
   const clientRef = useRef<Client | null>(null)
   const docRef = useRef<OT.SharedDoc | null>(null)
-  const presenceRef = useRef<Presence<GC.Spread.Sheets.PresenceData> | null>(null)
-  const connectionRef = useRef<Connection | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const presenceRef = useRef<Presence<any> | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const connectionRef = useRef<any>(null)
 
   const initCollaboration = async (documentId: string) => {
     try {
@@ -55,9 +55,6 @@ export const useSpreadCollaboration = ({
       clientRef.current = client
 
       const connection = client.connect(documentId, {
-        // query: {
-        //   id: documentId,
-        // },
         auth: {
           token: userId,
         },
@@ -85,34 +82,22 @@ export const useSpreadCollaboration = ({
       setIsLoading(false)
     }
   }
-  useEffect(() => {
-    if (!documentId || !serverUrl) {
-      setIsLoading(false)
-      return
-    }
-    initCollaboration(documentId)
 
-    return () => {
-      disconnect()
-    }
-  }, [documentId])
-  const { setWorkbook } = useDocument()
-
-  const bindWorkbook = useCallback(
-    async (workbook: GC.Spread.Sheets.Workbook) => {
-      setWorkbook(workbook)
+  // 初始化数据
+  const initCollData = useCallback(
+    async (workbook: GC.Spread.Sheets.Workbook, snapshot?: unknown) => {
       if (docRef.current) {
+        // 从服务端拉取文档状态
+        setIsLoading(true)
         await docRef.current.fetch()
-
         if (!docRef.current.type) {
-          if (workbook.collaboration) {
-            const snapshot = workbook.collaboration.toSnapshot()
-            await docRef.current.create(snapshot, type.uri, {})
-          }
+          // 创建新的共享文档并设置初始内容
+          const initSnapshot = snapshot || workbook.collaboration.toSnapshot()
+          await docRef.current.create(initSnapshot, type.uri, {})
         }
-
-        await bind(workbook, docRef.current)
-
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await bind(workbook, docRef.current as any)
+        setIsLoading(false)
         if (presenceRef.current) {
           const permissionMode =
             userRole === 'viewer'
@@ -157,6 +142,8 @@ export const useSpreadCollaboration = ({
     isLoading,
     error,
     userRole,
-    bindWorkbook,
+    initCollData,
+    initCollaboration,
+    disconnect,
   }
 }

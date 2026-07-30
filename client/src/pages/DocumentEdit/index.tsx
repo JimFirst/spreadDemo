@@ -1,24 +1,64 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Button, Space, Card, Input, message } from 'antd'
+import { Button, Space, Card, Input, message, Spin } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import { SpreadsheetEditor, SpreadsheetEditorRef } from '@/components/spreadsheet/SpreadsheetEditor'
+import { SpreadsheetEditor } from '@/components/spreadsheet/SpreadsheetEditor'
 import { SpreadsheetToolbar } from '@/components/spreadsheet/SpreadsheetToolbar'
 import { DocumentSidebar } from '@/components/DocumentSidebar'
 import ChatPanel from '@/components/ChatPanel'
 import { useDocument, DocumentProvider } from '@/stores/DocumentContext'
 import { useAuth } from '@/stores/AuthContext'
+import { useSpreadCollaboration } from '@/hooks/useSpreadCollaboration'
+import { createSpreadOperations } from '@/hooks/useSpreadOperations'
+import { documentService } from '@/services/api/document.service'
 
 const DocumentEditContent: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { document, loadDocument, updateDocument } = useDocument()
+  const { document, loadDocument, updateDocument, workbook } = useDocument()
+
+  const currentUserId = user?.id || ''
+  const { isConnected, isLoading, error, initCollaboration, initCollData } = useSpreadCollaboration(
+    {
+      userId: currentUserId,
+      username: user?.username || '',
+    }
+  )
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [width, setWidth] = useState(450)
 
-  const spreadsheetRef = useRef<SpreadsheetEditorRef>(null)
+  const getWorkbook = useCallback(() => workbook, [workbook])
+
+  const spreadsheet = useMemo(
+    () => (workbook ? createSpreadOperations(getWorkbook) : null),
+    [workbook, getWorkbook]
+  )
+
+  const handleInitCollaboration = useCallback(async () => {
+    if (!id || !workbook || !spreadsheet) return
+
+    try {
+      // Check if workbook has content before joining collaboration
+      let snapshot: unknown = undefined
+      if (spreadsheet.hasContent()) {
+        message.info('检测到表格有内容，正在创建快照...')
+        snapshot = workbook.collaboration?.toSnapshot()
+      }
+
+      // Initialize collaboration
+      await initCollaboration(id)
+      // Bind workbook to collaboration document
+      await initCollData(workbook, snapshot)
+      // Update document collaboration status
+      await documentService.updateCollaborationStatus(id, true)
+      message.success('已开启协同编辑')
+    } catch (err) {
+      console.error('Failed to init collaboration:', err)
+      message.error('开启协同编辑失败')
+    }
+  }, [id, workbook, spreadsheet, initCollaboration, initCollData])
 
   const isEditor = user?.role !== 'viewer'
 
@@ -33,6 +73,22 @@ const DocumentEditContent: React.FC = () => {
       setTitle(document.title)
     }
   }, [document])
+
+  // Auto-initialize collaboration if document already has collaboration enabled
+  useEffect(() => {
+    if (document?.isCollaborating && workbook && id) {
+      const autoInit = async () => {
+        try {
+          await initCollaboration(id)
+          await initCollData(workbook)
+        } catch (err) {
+          console.error('Auto init collaboration failed:', err)
+        }
+      }
+      autoInit()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [document?.isCollaborating, workbook, id])
 
   const handleSave = async () => {
     if (!id || !title.trim()) return
@@ -50,11 +106,14 @@ const DocumentEditContent: React.FC = () => {
     return <div style={{ padding: 24 }}>加载中...</div>
   }
 
-  const currentUserId = user?.id || ''
   const exportFileName = `${title || document.title}.xlsx`
 
+  if (error) {
+    return <div className="spreadsheet-editor__error">连接失败: {error.message}</div>
+  }
   return (
     <div style={{ display: 'flex', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+      <Spin spinning={isLoading} fullscreen></Spin>
       <div
         style={{
           flex: 1,
@@ -68,9 +127,11 @@ const DocumentEditContent: React.FC = () => {
       >
         <div style={{ marginBottom: 16 }}>
           <SpreadsheetToolbar
-            spreadsheetRef={spreadsheetRef}
+            getWorkbook={getWorkbook}
             disabled={!isEditor}
             fileName={exportFileName}
+            initCollaboration={handleInitCollaboration}
+            isCollaborating={isConnected}
           />
         </div>
         <Card
@@ -104,12 +165,7 @@ const DocumentEditContent: React.FC = () => {
           style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
           styles={{ body: { height: 'calc(100% - 57px)', overflow: 'auto' } }}
         >
-          <SpreadsheetEditor
-            ref={spreadsheetRef}
-            documentId={id!}
-            userId={currentUserId}
-            username={user?.username || ''}
-          />
+          <SpreadsheetEditor />
         </Card>
       </div>
       <ChatPanel chatPanelWidth={width} onChatPanelWidthChange={setWidth} />

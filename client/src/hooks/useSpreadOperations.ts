@@ -1,5 +1,4 @@
 import GC from '@grapecity-software/spread-sheets'
-import * as ExcelIO from '@grapecity-software/spread-excelio'
 
 export interface SpreadOperations {
   addRow: (position: 'above' | 'below') => void
@@ -22,10 +21,6 @@ export interface SpreadOperations {
   decreaseSelectionIndent: () => void
   lockSelection: () => void
   unlockSelection: () => void
-  lockSelectedRows: () => void
-  unlockSelectedRows: () => void
-  lockSelectedColumns: () => void
-  unlockSelectedColumns: () => void
   protectSheet: () => void
   unprotectSheet: () => void
   setSelectedRowHeight: (height: number) => void
@@ -34,6 +29,7 @@ export interface SpreadOperations {
   showAllRows: () => void
   hideSelectedColumns: () => void
   showAllColumns: () => void
+  hasContent: () => boolean
   importExcel: (file: File) => Promise<void>
   exportExcel: (fileName?: string) => Promise<void>
 }
@@ -52,8 +48,6 @@ const PROTECTION_PASSWORD = 'spread-demo'
 export const createSpreadOperations = (
   getWorkbook: () => GC.Spread.Sheets.Workbook | null
 ): SpreadOperations => {
-  const excelIO = new ExcelIO.IO()
-
   const getActiveSheet = () => {
     const activeSheet = getWorkbook()?.getActiveSheet() || null
     if (activeSheet) {
@@ -398,66 +392,6 @@ export const createSpreadOperations = (
         sheet.getRange(row, col, rowCount, colCount).locked(false).backColor(undefined)
       })
     },
-    lockSelectedRows: () => {
-      const sheet = getActiveSheet()
-      if (!sheet) return
-
-      const { row, rowCount } = getSelectionRange()
-      const wasProtected = isSheetProtected(sheet)
-      runWithSheetUnprotected(
-        sheet,
-        () => {
-          if (!wasProtected) {
-            sheet.getRange(0, 0, sheet.getRowCount(), sheet.getColumnCount()).locked(false)
-          }
-          for (let index = 0; index < rowCount; index += 1) {
-            sheet.getRange(row + index, 0, 1, sheet.getColumnCount()).locked(true).backColor('#f3f4f6')
-          }
-        },
-        true
-      )
-    },
-    unlockSelectedRows: () => {
-      const sheet = getActiveSheet()
-      if (!sheet) return
-
-      const { row, rowCount } = getSelectionRange()
-      runWithSheetUnprotected(sheet, () => {
-        for (let index = 0; index < rowCount; index += 1) {
-          sheet.getRange(row + index, 0, 1, sheet.getColumnCount()).locked(false).backColor(undefined)
-        }
-      })
-    },
-    lockSelectedColumns: () => {
-      const sheet = getActiveSheet()
-      if (!sheet) return
-
-      const { col, colCount } = getSelectionRange()
-      const wasProtected = isSheetProtected(sheet)
-      runWithSheetUnprotected(
-        sheet,
-        () => {
-          if (!wasProtected) {
-            sheet.getRange(0, 0, sheet.getRowCount(), sheet.getColumnCount()).locked(false)
-          }
-          for (let index = 0; index < colCount; index += 1) {
-            sheet.getRange(0, col + index, sheet.getRowCount(), 1).locked(true).backColor('#f3f4f6')
-          }
-        },
-        true
-      )
-    },
-    unlockSelectedColumns: () => {
-      const sheet = getActiveSheet()
-      if (!sheet) return
-
-      const { col, colCount } = getSelectionRange()
-      runWithSheetUnprotected(sheet, () => {
-        for (let index = 0; index < colCount; index += 1) {
-          sheet.getRange(0, col + index, sheet.getRowCount(), 1).locked(false).backColor(undefined)
-        }
-      })
-    },
     protectSheet: () => {
       const sheet = getActiveSheet()
       if (!sheet) return
@@ -528,22 +462,53 @@ export const createSpreadOperations = (
         sheet.setColumnVisible(col, true)
       }
     },
+    hasContent: () => {
+      const workbook = getWorkbook()
+      if (!workbook) return false
+
+      for (let s = 0; s < workbook.getSheetCount(); s += 1) {
+        const sheet = workbook.getSheet(s)
+        if (!sheet) continue
+
+        const rowCount = sheet.getRowCount()
+        const colCount = sheet.getColumnCount()
+
+        // Check cells for values
+        for (let r = 0; r < Math.min(rowCount, 100); r += 1) {
+          for (let c = 0; c < Math.min(colCount, 50); c += 1) {
+            const value = sheet.getValue(r, c)
+            if (value !== null && value !== undefined && value !== '') {
+              return true
+            }
+          }
+        }
+
+      }
+
+      return false
+    },
     importExcel: (file: File) => {
+      console.log('importExcel called, file:', file)
       const workbook = getWorkbookOrThrow()
 
       return new Promise<void>((resolve, reject) => {
-        excelIO.open(
+        workbook.import(
           file,
-          (json: object) => {
-            workbook.fromJSON(json)
-            workbook.repaint()
+          () => {
+            console.log('import success')
             resolve()
           },
           (error: unknown) => {
+            console.error('Import error:', error)
             const excelError = error as { errorMessage?: string }
             reject(
               error instanceof Error ? error : new Error(excelError?.errorMessage || '导入失败')
             )
+          },
+          {
+            // openMode: GC.Spread.Sheets.OpenMode.normal,
+            // includeStyles: true,
+            // includeFormulas: true,
           }
         )
       })
@@ -553,8 +518,7 @@ export const createSpreadOperations = (
       const normalizedFileName = normalizeExcelFileName(fileName)
 
       return new Promise<void>((resolve, reject) => {
-        excelIO.save(
-          workbook.toJSON(),
+        workbook.export(
           (blob: Blob) => {
             downloadBlob(blob, normalizedFileName)
             resolve()
@@ -565,9 +529,7 @@ export const createSpreadOperations = (
               error instanceof Error ? error : new Error(excelError?.errorMessage || '导出失败')
             )
           },
-          {
-            xlsxStrictMode: false,
-          }
+          { fileType: GC.Spread.Sheets.FileType.excel }
         )
       })
     },

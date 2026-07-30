@@ -12,6 +12,7 @@ export interface Document {
   updatedAt: string
   snapshots?: Snapshot[]
   members?: DocumentMember[]
+  isCollaborating?: boolean
 }
 
 export interface Snapshot {
@@ -114,5 +115,9 @@ export const documentService = {
 
   validateShareLink(token: string) {
     return axiosInstance.get(`/documents/share-link/${token}`)
+  },
+
+  updateCollaborationStatus(id: string, isCollaborating: boolean) {
+    return axiosInstance.patch(`/documents/${id}/collaboration`, { isCollaborating })
   },
 }
