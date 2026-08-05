@@ -30,7 +30,7 @@ export const SpreadsheetEditor = () => {
     <div className="spreadsheet-editor">
       <SpreadSheets
         backColor="aliceblue"
-        hostStyle={{ width: '100%', height: '1000px' }}
+        hostStyle={{ width: '100%', height: '800px' }}
         workbookInitialized={handleWorkbookInitialized}
       >
         <Worksheet name="Sheet1" />

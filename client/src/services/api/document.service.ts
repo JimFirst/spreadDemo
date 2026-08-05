@@ -120,4 +120,12 @@ export const documentService = {
   updateCollaborationStatus(id: string, isCollaborating: boolean) {
     return axiosInstance.patch(`/documents/${id}/collaboration`, { isCollaborating })
   },
+
+  saveDocumentContent(id: string, content: object) {
+    return axiosInstance.patch(`/documents/${id}/content`, { content })
+  },
+
+  getDocumentContent(id: string) {
+    return axiosInstance.get(`/documents/${id}/content`)
+  },
 }

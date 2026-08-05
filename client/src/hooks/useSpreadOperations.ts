@@ -32,6 +32,8 @@ export interface SpreadOperations {
   hasContent: () => boolean
   importExcel: (file: File) => Promise<void>
   exportExcel: (fileName?: string) => Promise<void>
+  toJSON: () => object
+  fromJSON: (data: object) => void
 }
 
 const MOCK_DATABASE_DATA = [
@@ -532,6 +534,14 @@ export const createSpreadOperations = (
           { fileType: GC.Spread.Sheets.FileType.excel }
         )
       })
+    },
+    toJSON: () => {
+      const workbook = getWorkbookOrThrow()
+      return workbook.toJSON()
+    },
+    fromJSON: (data: object) => {
+      const workbook = getWorkbookOrThrow()
+      workbook.fromJSON(data)
     },
   }
 }

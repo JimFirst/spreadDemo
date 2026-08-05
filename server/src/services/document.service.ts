@@ -134,6 +134,26 @@ export class DocumentService {
     logger.info('文档删除成功', { documentId: id })
   }
 
+  async saveContent(id: string, content: object) {
+    const document = await prisma.document.update({
+      where: { id },
+      data: { content },
+    })
+
+    logger.info('文档内容保存成功', { documentId: id })
+
+    return document
+  }
+
+  async getContent(id: string) {
+    const document = await prisma.document.findUnique({
+      where: { id },
+      select: { content: true },
+    })
+
+    return document?.content || null
+  }
+
   async share(documentId: string, userId: string, role: string) {
     const member = await prisma.documentMember.create({
       data: {

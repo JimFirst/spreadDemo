@@ -19,12 +19,11 @@ const DocumentEditContent: React.FC = () => {
   const { document, loadDocument, updateDocument, workbook } = useDocument()
 
   const currentUserId = user?.id || ''
-  const { isConnected, isLoading, error, initCollaboration, initCollData } = useSpreadCollaboration(
-    {
+  const { isConnected, isLoading, error, initCollaboration, initCollData, disconnect } =
+    useSpreadCollaboration({
       userId: currentUserId,
       username: user?.username || '',
-    }
-  )
+    })
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [width, setWidth] = useState(450)
@@ -35,6 +34,37 @@ const DocumentEditContent: React.FC = () => {
     () => (workbook ? createSpreadOperations(getWorkbook) : null),
     [workbook, getWorkbook]
   )
+
+  // 保存表格内容
+  const handleSaveContent = useCallback(async () => {
+    if (!id || !spreadsheet || isConnected) return
+
+    try {
+      const content = spreadsheet.toJSON()
+      await documentService.saveDocumentContent(id, content)
+      message.success('表格已保存')
+    } catch {
+      message.error('保存失败')
+    }
+  }, [id, spreadsheet, isConnected])
+
+  // 加载文档内容
+  useEffect(() => {
+    if (!document?.id || !spreadsheet) return
+
+    const loadContent = async () => {
+      try {
+        const response = await documentService.getDocumentContent(document.id)
+        const content = response.data
+        if (content && spreadsheet.hasContent() === false) {
+          spreadsheet.fromJSON(content)
+        }
+      } catch (err) {
+        console.error('Failed to load document content:', err)
+      }
+    }
+    loadContent()
+  }, [document?.id, spreadsheet])
 
   const handleInitCollaboration = useCallback(async () => {
     if (!id || !workbook || !spreadsheet) return
@@ -90,6 +120,15 @@ const DocumentEditContent: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [document?.isCollaborating, workbook, id])
 
+  // 离开页面时断开协同编辑
+  useEffect(() => {
+    return () => {
+      if (isConnected) {
+        disconnect()
+      }
+    }
+  }, [isConnected, disconnect])
+
   const handleSave = async () => {
     if (!id || !title.trim()) return
 
@@ -132,6 +171,7 @@ const DocumentEditContent: React.FC = () => {
             fileName={exportFileName}
             initCollaboration={handleInitCollaboration}
             isCollaborating={isConnected}
+            onSave={handleSaveContent}
           />
         </div>
         <Card

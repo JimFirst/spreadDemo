@@ -253,6 +253,34 @@ export class DocumentController {
       message: '协同状态更新成功',
     })
   }
+
+  async updateContent(req: AuthenticatedRequest, res: Response) {
+    const { id } = req.params
+    const { content } = req.body
+
+    if (!content) {
+      throw new AppError(400, 1001, '内容不能为空')
+    }
+
+    const document = await documentService.saveContent(id, content)
+
+    res.json({
+      code: 0,
+      data: document,
+      message: '文档内容保存成功',
+    })
+  }
+
+  async getContent(req: AuthenticatedRequest, res: Response) {
+    const { id } = req.params
+    const content = await documentService.getContent(id)
+
+    res.json({
+      code: 0,
+      data: content,
+      message: '获取文档内容成功',
+    })
+  }
 }
 
 export const documentController = new DocumentController()

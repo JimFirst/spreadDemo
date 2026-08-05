@@ -109,5 +109,17 @@ router.patch('/:id/collaboration', documentAccessMiddleware, (req, res, next) =>
     .then(() => next())
     .catch(next)
 )
+router.patch('/:id/content', documentAccessMiddleware, (req, res, next) =>
+  documentController
+    .updateContent(req, res, next)
+    .then(() => next())
+    .catch(next)
+)
+router.get('/:id/content', documentAccessMiddleware, (req, res, next) =>
+  documentController
+    .getContent(req, res, next)
+    .then(() => next())
+    .catch(next)
+)
 
 export default router

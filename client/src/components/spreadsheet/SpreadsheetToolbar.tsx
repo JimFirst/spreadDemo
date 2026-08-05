@@ -10,6 +10,7 @@ import {
   UploadOutlined,
   DownloadOutlined,
   CloudOutlined,
+  SaveOutlined,
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { createSpreadOperations, SpreadOperations } from '@/hooks/useSpreadOperations'
@@ -20,6 +21,7 @@ interface SpreadsheetToolbarProps {
   fileName?: string
   initCollaboration?: () => void
   isCollaborating?: boolean
+  onSave?: () => void
 }
 
 export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
@@ -28,6 +30,7 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
   fileName,
   initCollaboration,
   isCollaborating = false,
+  onSave,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [importing, setImporting] = useState(false)
@@ -343,6 +346,13 @@ export const SpreadsheetToolbar: React.FC<SpreadsheetToolbarProps> = ({
           导出
         </Button>
       </Tooltip>
+      {!isCollaborating && onSave && (
+        <Tooltip title="保存当前表格到服务器">
+          <Button icon={<SaveOutlined />} onClick={onSave}>
+            保存
+          </Button>
+        </Tooltip>
+      )}
 
       <div style={{ width: 1, height: 24, background: '#d9d9d9', margin: '0 8px' }} />
 
